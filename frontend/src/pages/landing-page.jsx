@@ -2,8 +2,8 @@ import React from 'react'
 import { useState } from 'react'
 
 
-function App() {
-
+function LandingPage() {
+  
   return (
     <>
       <div >
@@ -14,4 +14,4 @@ function App() {
   )
 }
 
-export default App
+export default LandingPage
