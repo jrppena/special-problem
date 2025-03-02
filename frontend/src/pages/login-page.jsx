@@ -11,7 +11,7 @@ import { toast } from "react-hot-toast";
 function SignupPage() {
 
     const [showPassword, setShowPassword] = useState(false);
-    const [isSigningUp, setIsSigningUp] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
     const [formData, setFormData] = useState({
         email: "",
@@ -117,9 +117,9 @@ function SignupPage() {
               <button
                 type="submit"
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-16 py-4 text-lg font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:ring-2 focus:ring-blue-500"
-                disabled={isSigningUp}
+                disabled={isLoggingIn}
                 >
-                {isSigningUp ? (
+                {isLoggingIn ? (
                     <>
                     <Loader2 className="size-5 animate-spin" />
                     Loading...

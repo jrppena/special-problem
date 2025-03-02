@@ -36,18 +36,24 @@ export const useAuthStore = create((set) => ({
     },
 
     login: async (data) => {
-        set({isLoggingIn: true});
-        try{
+        set({ isLoggingIn: true });
+    
+        try {
             const response = await axiosInstance.post("/user/login", data);
-            set({authUser: response.data});
+    
+            // ✅ Wait for checkAuth() to get the latest user state before setting authUser
+            await useAuthStore.getState().checkAuth();
+    
             toast.success("Logged in successfully");
-        }catch(error){
-            toast.error(error.response.data.message);
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Login failed");
             console.log("Error in login: ", error);
-        }finally{
-            set({isLoggingIn: false});
+        } finally {
+            set({ isLoggingIn: false });
         }
     },
+    
+    
     logout: async () => {
         try{
             await axiosInstance.get("/user/logout");

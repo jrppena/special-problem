@@ -33,7 +33,25 @@ const App = () => {
         <div>
             <Toaster/>
             <Routes>
-                <Route path="/" element={authUser ? ( authUser.isVerified ? <HomePage /> : <Navigate to="/verification" />) : ( <Navigate to="/login" />)} />
+                <Route
+                    path="/"
+                    element={
+                        isCheckingAuth ? (
+                        // ✅ Show a loader while authentication is being verified
+                        <div className="flex justify-center items-center h-screen">
+                            <Loader2 className="size-10 animate-spin" />
+                        </div>
+                        ) : authUser ? (
+                        authUser.isVerified ? (
+                            <HomePage />
+                        ) : (
+                            <VerificationPage />
+                        )
+                        ) : (
+                        <Navigate to="/login" />
+                        )
+                    }
+                />
                 <Route path="/signup" element={!authUser ? <SignupPage /> : <Navigate to ="/"/>} />
                 <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to ="/"/>} />
                 <Route path="/verification" element={authUser ? ( authUser.isVerified ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />

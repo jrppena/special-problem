@@ -4,6 +4,7 @@ import {generateToken}  from '../config/utils.js';
 
 const signup = async (req, res) => {
     const {first_name, last_name, email, password, role} = req.body;
+    const is_verified = false;
     try{
         const existingUser = await User
             .findOne({email})
@@ -23,6 +24,7 @@ const signup = async (req, res) => {
             lastName: last_name,
             email: email,
             password: hashedPassword,
+            isVerified: is_verified,
             role: role
         });
 
