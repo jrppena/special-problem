@@ -10,7 +10,7 @@ export const useAuthStore = create((set) => ({
 
     checkAuth: async () => {
         try{
-            const response = await axiosInstance.get("/user/check");
+            const response = await axiosInstance.get("/auth/check");
             set({authUser: response.data});
         }catch(error){
             console.log("Error in checkAuth: ", error);
@@ -24,7 +24,7 @@ export const useAuthStore = create((set) => ({
         set({isSigningUp: true});
         console.log("Data: ", data);
         try{
-            const response = await axiosInstance.post("/user/signup", data);
+            const response = await axiosInstance.post("/auth/signup", data);
             set({authUser: response.data});
             toast.success("Account created successfully");
         }catch(error){
@@ -39,7 +39,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoggingIn: true });
     
         try {
-            const response = await axiosInstance.post("/user/login", data);
+            const response = await axiosInstance.post("/auth/login", data);
     
             // ✅ Wait for checkAuth() to get the latest user state before setting authUser
             await useAuthStore.getState().checkAuth();
@@ -56,7 +56,7 @@ export const useAuthStore = create((set) => ({
     
     logout: async () => {
         try{
-            await axiosInstance.get("/user/logout");
+            await axiosInstance.get("/auth/logout");
             set({authUser: null});
             toast.success("Logged out successfully");
         }catch(error){

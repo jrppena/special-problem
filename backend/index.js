@@ -9,15 +9,17 @@ import path from "path";
 dotenv.config();
 
 const app = express()
-app.use(express.json());
+
+
 const __dirname = path.resolve();
 const corsOptions = { 
   origin: "http://localhost:5173",
   credentials: true,
 };
 
-app.use(cors(corsOptions));
+app.use(express.json());
 app.use(cookieParser());
+app.use(cors(corsOptions));
 
 appRoutes(app);
 

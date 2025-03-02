@@ -97,7 +97,7 @@ const checkAuth = (req, res) => {
 }
 
 
-export const userRoutes = {
+export const authRoutes = {
     signup,
     login,
     logout,
