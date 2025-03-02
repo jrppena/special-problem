@@ -1,10 +1,13 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.model.js';
+import Student from '../models/student.model.js';
+import Teacher from '../models/teacher.model.js';
+import Admin from '../models/admin.model.js';
 import {generateToken}  from '../config/utils.js';
 
 const signup = async (req, res) => {
-    const {first_name, last_name, email, password, role} = req.body;
-    const is_verified = false;
+    const {first_name, last_name, email, password, role, gradeLevel} = req.body;
+    
     try{
         const existingUser = await User
             .findOne({email})
@@ -18,15 +21,23 @@ const signup = async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-         
-        const user = new User({
+        const roleModels = {
+            Student,
+            Teacher,
+            Admin
+        };
+        
+        let user = new roleModels[role]({
             firstName: first_name,
             lastName: last_name,
-            email: email,
+            email,
             password: hashedPassword,
-            isVerified: is_verified,
-            role: role
+            role
         });
+
+        if(gradeLevel){
+            user.gradeLevel = gradeLevel;
+        }
 
         if(user){
             generateToken(user._id, res);

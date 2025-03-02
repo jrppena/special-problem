@@ -10,6 +10,7 @@ import "./index.css";
 import HomePage from "./pages/home-page";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import AdminVerificationPage from "./pages/admin/admin-verification-page";
 
 const App = () => {
     const {authUser, checkAuth, isCheckingAuth} = useAuthStore();
@@ -42,7 +43,7 @@ const App = () => {
                             <Loader2 className="size-10 animate-spin" />
                         </div>
                         ) : authUser ? (
-                        authUser.isVerified ? (
+                        authUser.accountStatus === "Verified" ? (
                             <HomePage />
                         ) : (
                             <VerificationPage />
@@ -54,7 +55,8 @@ const App = () => {
                 />
                 <Route path="/signup" element={!authUser ? <SignupPage /> : <Navigate to ="/"/>} />
                 <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to ="/"/>} />
-                <Route path="/verification" element={authUser ? ( authUser.isVerified ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />
+                <Route path="/verification" element={authUser ? ( authUser.accountStatus === "Verified" ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />
+                <Route path="/admin/verify" element={authUser && authUser.role === "Admin" ? <AdminVerificationPage /> : <Navigate to="/" />} />
             </Routes>
         </div>
     );

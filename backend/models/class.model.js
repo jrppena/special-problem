@@ -1,14 +1,11 @@
 import mongoose from "mongoose";
 
 const classSchema = new mongoose.Schema({
-    gradeLevel: { type: String, required: true },
-    subject: { type: String, required: true },
-    section: { type: String, required: true },
-    schoolYear: { type: String, required: true }, // Example: "2024-2025"
-    students: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }],
-    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher" }
-  });
-  
+  name: { type: String, required: true }, // e.g., "Mathematics 10"
+  subject: { type: String, required: true }, // e.g., "Mathematics"
+  teacher: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", required: true }, // Assigned teacher
+  section: { type: mongoose.Schema.Types.ObjectId, ref: "Section", required: true }, // ✅ Linked to a section
+});
+
 const Class = mongoose.model("Class", classSchema);
 export default Class;
-  

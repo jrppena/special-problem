@@ -11,6 +11,8 @@ import { ChevronLeft, ChevronRight, X, AlertCircle } from 'lucide-react';
 
 function SignupPage() {
     const [role, setRole] = useState("Student");
+    const [isNewStudent, setIsNewStudent] = useState("New"); // "New" or "Transferee"
+    const [selectedGradeLevel, setSelectedGradeLevel] = useState(""); // Only for transferees
 
     const [showPassword, setShowPassword] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
@@ -22,6 +24,7 @@ function SignupPage() {
         password: "",
         password_confirmation: "",
         role: role,
+        gradeLevel: selectedGradeLevel,
     });
 
     const {signup} = useAuthStore();
@@ -40,6 +43,7 @@ function SignupPage() {
         if (!formData.password.trim()) errorList.push("Password is required");
         if (formData.password.length < 6) errorList.push("Password must be at least 6 characters");
         if (formData.password !== formData.password_confirmation) errorList.push("Passwords do not match");
+        if (isNewStudent === "Transferee" && !selectedGradeLevel) errorList.push("Please select your current grade level");
     
         if (errorList.length > 0) {
             setErrors(errorList);
@@ -107,7 +111,6 @@ function SignupPage() {
 
     const handleSubmit = (e) =>{
         e.preventDefault();
-        console.log("here")
         const success = validateForm();
 
         if(success) signup(formData);
@@ -283,6 +286,30 @@ function SignupPage() {
                     </label>
                 </div>
                 </div>
+
+                 {/* New Student or Transferee */}
+                 {role === "Student" && (
+                                <div className="col-span-6">
+                                    <label className="block text-lg font-medium text-gray-700">Are you a new student or a transferee?</label>
+                                    <select className="mt-2 w-full p-3 border rounded-md" value={isNewStudent} onChange={(e) => setIsNewStudent(e.target.value)}>
+                                        <option value="New">New Student</option>
+                                        <option value="Transferee">Transferee</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Transferee Grade Level Selection */}
+                            {role === "Student" && isNewStudent === "Transferee" && (
+                                <div className="col-span-6">
+                                    <label className="block text-lg font-medium text-gray-700">Select Current Grade Level</label>
+                                    <select className="mt-2 w-full p-3 border rounded-md" value={selectedGradeLevel} onChange={(e) => setSelectedGradeLevel(e.target.value)}>
+                                        <option value="">Select...</option>
+                                        {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
+                                            <option key={grade} value={grade}>{grade}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
 
 

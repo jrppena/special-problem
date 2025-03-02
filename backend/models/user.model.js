@@ -6,12 +6,13 @@ const userSchema = new mongoose.Schema(
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true, minLength: 6 },
-    isVerified: { type: Boolean, default: false },
+    accountStatus: { type: String, default: "Pending", enum: ["Pending", "Verified", "Rejected"]},
     role: { 
       type: String, 
       required: true, 
       enum: ["Student", "Teacher", "Admin"]
-    }
+    },
+    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }]
   },
   {
     timestamps: true,
