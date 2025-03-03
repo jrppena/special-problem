@@ -5,7 +5,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 const Navbar = () => {
   const navigate = useNavigate(); // Hook for page navigation
-  const { logout } = useAuthStore();
+  const { authUser, logout } = useAuthStore();
   
   const handleLogout = () => {
     logout();
@@ -21,7 +21,7 @@ const Navbar = () => {
           className="flex items-center gap-2 p-2 bg-white rounded-full shadow-sm hover:bg-gray-200 transition cursor-pointer"
         >
           <img
-            src="/docs/images/people/profile-picture-3.jpg"
+            src={authUser.profilePic || "/avatar.png"}
             alt="User"
             className="w-10 h-10 rounded-full"
           />

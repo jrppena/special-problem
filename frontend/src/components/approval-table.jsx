@@ -35,10 +35,10 @@ const ApprovalTable = ({ userType, users, onApprove, onDisapprove }) => {
   };
 
   return (
-    <div className="overflow-x-auto mt-6">
+    <div className="overflow-x-auto mt-6 ml-5 mr-5">
       {/* ✅ Conditional Rendering: If no users match the criteria, show a message */}
       {filteredUsers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center bg-white p-6 rounded-md shadow-lg">
+        <div className="flex flex-col items-center justify-center bg-white p-6 rounded-lg shadow-lg">
           <Users className="w-16 h-16 text-gray-400" />
           <h2 className="text-xl font-semibold text-gray-700 mt-3">
             No {userType === "All" ? "users" : userType === "Student" ? "students" : "teachers"} to verify

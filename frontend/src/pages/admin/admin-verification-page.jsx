@@ -25,7 +25,7 @@ const AdminVerificationPage = () => {
     return(
         <div>
             <NavBar />
-            <div className="flex flex-col md:flex-row w-auto justify-start items-start md:items-center gap-4 ml-10 mt-10 mb-10">
+            <div className="flex flex-col md:flex-row w-auto justify-start items-start md:items-center gap-4 container mx-auto px-4 sm:px-6 lg:px-8 mt-10">
                 <PageHeader title="Verify Accounts" />
                 <Dropdown label="User Type" options={userTypeOptions} selected={userType} setSelected={setUserType} />
             </div>

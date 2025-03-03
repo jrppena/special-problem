@@ -4,6 +4,7 @@ import Student from '../models/student.model.js';
 import Teacher from '../models/teacher.model.js';
 import Admin from '../models/admin.model.js';
 import {generateToken}  from '../config/utils.js';
+import {cloudinary} from '../config/cloudinary.js';
 
 const signup = async (req, res) => {
     const {first_name, last_name, email, password, role, gradeLevel} = req.body;
@@ -87,6 +88,59 @@ const logout = (req, res) => {
    }
 }
 
+const updateProfile = async (req, res) => {
+   
+    try {
+        const contact_number = req.body.contact_number;
+        const address = req.body.address;
+        const profilePic = req.body.selectedImage;
+        const didChangeImage = req.body.didChangeImage;
+        const userId = req.user._id;
+
+        // Fetch current user data
+        const currentUser = await User.findById(userId);
+        if (!currentUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        let updateData = {}; // Object to store only changed fields
+
+        // Check if profile picture needs to be updated
+        if (didChangeImage) {
+
+            const uploadResponse = await cloudinary.uploader.upload(profilePic);
+            updateData.profilePic = uploadResponse.secure_url;
+        }
+
+        // Check if contact number or address has changed before updating
+        if (contact_number !== currentUser.contactNumber) {
+            updateData.contactNumber = contact_number;
+        }
+        if (address !== currentUser.address) {
+            updateData.address = address;
+        }
+
+        // If no changes, return a response without updating the database
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: "There aren't any changes to update" });
+        }
+
+        // Update user in the database with only the changed fields
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.log("Error in updateProfile: ", error.message);
+        return res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+export default updateProfile;
+
 const checkAuth = (req, res) => {
     try{
         return res.status(200).json(req.user);
@@ -101,5 +155,6 @@ export const authRoutes = {
     signup,
     login,
     logout,
+    updateProfile,
     checkAuth
 }

@@ -11,6 +11,7 @@ import HomePage from "./pages/home-page";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import AdminVerificationPage from "./pages/admin/admin-verification-page";
+import UserProfile from "./pages/user-profile-page";
 
 const App = () => {
     const {authUser, checkAuth, isCheckingAuth} = useAuthStore();
@@ -55,6 +56,7 @@ const App = () => {
                 <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to ="/"/>} />
                 <Route path="/verification" element={authUser ? ( authUser.accountStatus === "Verified" ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />
                 <Route path="/admin/verify" element={authUser && authUser.role === "Admin" ? <AdminVerificationPage /> : <Navigate to="/" />} />
+                <Route path="/profile" element={authUser ? <UserProfile /> : <Navigate to="/login" />} />
             </Routes>
         </div>
     );
