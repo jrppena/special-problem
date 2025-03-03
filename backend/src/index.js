@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import appRoutes from './routes/routes.js';
 import dotenv from 'dotenv';
 import connectDB from './config/mongodb.js';
 import cookieParser from 'cookie-parser';
 import path from "path";
+import authRoutes from "./routes/auth.route.js";
+import adminRoutes from "./routes/admin.route.js";
 
 dotenv.config();
 
@@ -22,10 +23,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
-appRoutes(app);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
-if(process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+if(process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
   })
