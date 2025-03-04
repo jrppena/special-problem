@@ -32,5 +32,4 @@ export const useApprovalStore = create((set) => ({
         console.error("Error verifying user:", error);
     }
   },
-
 }));

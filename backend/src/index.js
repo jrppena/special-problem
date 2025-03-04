@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import path from "path";
 import authRoutes from "./routes/auth.route.js";
 import adminRoutes from "./routes/admin.route.js";
+import sectionRoutes from "./routes/section.route.js";
+import teacherRoutes from "./routes/teacher.route.js";
 
 dotenv.config();
 
@@ -25,6 +27,9 @@ app.use(cors(corsOptions));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/section', sectionRoutes);
+app.use('/api/teacher', teacherRoutes);
+
 
 if(process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));

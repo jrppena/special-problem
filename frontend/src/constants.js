@@ -8,9 +8,16 @@ const adminFunctions = [
         "route": "/admin/verify"
     },
     {
+        "name": "Manage Sections",
+        "description": "Manage sections, advisers, and students",
+        "icon": "/assets/admin/section.png",
+        "button-name": "Manage Sections",
+        "route": "/admin/manage-sections"
+    },
+    {
         "name": "Class Management",
         "description": "Manage classes, subjects, and teachers",
-        "icon": "/assets/admin/school.svg", 
+        "icon": "/assets/admin/classroom.svg", 
         "button-name": "Manage Classes",
         "route": "/admin/classes"
     },
@@ -48,6 +55,57 @@ const teacherFunctions = [
         "icon": "/assets/student/trends.svg", 
         "button-name": "View Trends",
         "route": "/teacher/trends"
+    }
+]
+
+export const schoolYears = [
+    {
+        "name": "2024-2025",
+        "isCurrent": true
+    },
+    {
+        "name": "2023-2024",
+        "isCurrent": false
+    },
+    {
+        "name": "2022-2023",
+        "isCurrent": false
+    },
+    {
+        "name": "2021-2022",
+        "isCurrent": false
+    },
+    {
+        "name": "2020-2021",
+        "isCurrent": false
+    },
+
+]
+
+export const gradeLevels = [
+    {
+        "name": "Grade 7",
+        "value": 7
+    },
+    {
+        "name": "Grade 8",
+        "value": 8
+    },
+    {
+        "name": "Grade 9",
+        "value": 9
+    },
+    {
+        "name": "Grade 10",
+        "value": 10
+    },
+    {
+        "name": "Grade 11",
+        "value": 11
+    },
+    {
+        "name": "Grade 12",
+        "value": 12
     }
 ]
 
