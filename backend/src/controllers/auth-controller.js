@@ -8,7 +8,7 @@ import {cloudinary} from '../config/cloudinary.js';
 
 const signup = async (req, res) => {
     const {first_name, last_name, email, password, role, gradeLevel} = req.body;
-    
+        
     try{
         const existingUser = await User
             .findOne({email})

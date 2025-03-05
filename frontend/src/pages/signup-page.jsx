@@ -261,8 +261,10 @@ function SignupPage() {
                         type="radio"
                         name="role"
                         value="Student"
-                        checked={role === "Student"}
-                        onChange={() => setRole("Student")}
+                        onChange={() => {
+                          setRole("Student");
+                          setFormData(prevState => ({ ...prevState, role: "Student" }));
+                        }}
                         className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 focus:ring-2 focus:ring-blue-500"
                     />
                     <span className="text-lg font-medium text-gray-900">Student</span>
@@ -279,7 +281,10 @@ function SignupPage() {
                         name="role"
                         value="Teacher"
                         checked={role === "Teacher"}
-                        onChange={() => setRole("Teacher")}
+                        onChange={() => {
+                          setRole("Teacher");
+                          setFormData(prevState => ({ ...prevState, role: "Teacher" }));
+                      }}
                         className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 focus:ring-2 focus:ring-blue-500"
                     />
                     <span className="text-lg font-medium text-gray-900">Teacher</span>
