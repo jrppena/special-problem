@@ -47,7 +47,7 @@ const ApprovalTable = ({ userType, users, onApprove, onDisapprove }) => {
       ) : (
         <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transform  transition duration-300 ease-in-out">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className>
               <tr>
                 {columns.map((col, index) => (
                   <th
@@ -59,7 +59,7 @@ const ApprovalTable = ({ userType, users, onApprove, onDisapprove }) => {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user, index) => (
                 <tr
                   key={index}

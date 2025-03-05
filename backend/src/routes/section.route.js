@@ -8,5 +8,6 @@ router.get('/get/:schoolYear', protectRoute, sectionRoutes.getAllSectionsGivenSc
 router.get('/get/available-advisers/:schoolYear', protectRoute, sectionRoutes.getAvailableAdvisers);
 router.post('/add', protectRoute, sectionRoutes.createSection);
 router.put('/edit/:id', protectRoute, sectionRoutes.editSelectedSection);
+router.delete('/delete/:id', protectRoute, sectionRoutes.deleteSelectedSection);
 
 export default router;

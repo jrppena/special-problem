@@ -15,21 +15,26 @@ const getAllSectionsGivenSchoolYear = async (req, res) => {
 
 
 const createSection = async (req, res) => {
-    const {name, gradeLevel, teacher, currentSchoolYear} = req.body;
+    const {sectionName, gradeLevel, adviserId, schoolYear} = req.body;
     try {
-       const existingSection = await Section.findOne
-       ({name, gradeLevel, schoolYear: currentSchoolYear});
-         if(existingSection){
-              return res.status(400).json({message: "Section already exists"});
-         }
-            const section = new Section({
-                name,
-                gradeLevel,
-                adviser: teacher,
-                schoolYear: currentSchoolYear
-            });
-            await section.save();
-            return res.status(201).json({message: "Section created successfully"});
+        
+        const adviser = await Teacher.findById(adviserId);
+        
+        if(!adviser){
+            return res.status(404).json({message: "Adviser not found"});
+        }
+
+        const newSection = new Section({
+            name: sectionName,
+            gradeLevel: gradeLevel,
+            adviser: adviser,
+            schoolYear
+        });
+
+        await newSection.save();
+
+        console.log("Section created successfully");
+        return res.status(201).json({message: "Section created successfully"});
     }
     catch(error){
         console.log("Error in createSection: ", error);
@@ -39,16 +44,21 @@ const createSection = async (req, res) => {
 
 const editSelectedSection = async (req, res) => {
     const {id} = req.params;
-    const {name, gradeLevel, teacher, currentSchoolYear} = req.body;
+    const {sectionName,  adviser} = req.body;
+    let {gradeLevel} = req.body;
+
+    if (typeof gradeLevel === "string") {
+        gradeLevel = parseInt(gradeLevel.split(" ")[1], 10);
+    }
+    
     try {
         const section = await Section.findById(id);
         if(!section){
             return res.status(404).json({message: "Section not found"});
         }
-        section.name = name;
+        section.name = sectionName;
         section.gradeLevel = gradeLevel;
-        section.adviser = teacher;
-        section.schoolYear = currentSchoolYear;
+        section.adviser = adviser;
         await section.save();
         return res.status(200).json({message: "Section updated successfully"});
     }
@@ -61,7 +71,6 @@ const editSelectedSection = async (req, res) => {
 // Get all teachers who are not yet assigned as advisers for the current school year
 const getAvailableAdvisers = async (req, res) => {
     const { schoolYear } = req.params;
-    console.log("School year: ", schoolYear);
   try {
 
     // Get all teacher IDs that are already assigned as advisers in the given school year
@@ -70,8 +79,6 @@ const getAvailableAdvisers = async (req, res) => {
     // Find teachers who are NOT in the assigned advisers list
     const availableAdvisers = await Teacher.find({ _id: { $nin: assignedAdvisers }, accountStatus: "Verified" });
 
-    console.log("Available advisers: ", availableAdvisers);
-
     res.status(200).json(availableAdvisers);
   } catch (error) {
     console.error("Error fetching available advisers:", error);
@@ -79,13 +86,29 @@ const getAvailableAdvisers = async (req, res) => {
   }
 }
 
+const deleteSelectedSection = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const section = await Section.findByIdAndDelete(id);
+        
+        if (!section) {
+            return res.status(404).json({ message: "Section not found" });
+        }
+        return res.status(200).json({ message: "Section deleted successfully", schoolYear: section.schoolYear });
+    } catch (error) {
+        console.error("Error in deleteSelectedSection: ", error);
+        return res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
 
 
 export const sectionRoutes = {
     getAllSectionsGivenSchoolYear,
     createSection,
     editSelectedSection,
-    getAvailableAdvisers
+    getAvailableAdvisers,
+    deleteSelectedSection
 }
 
 

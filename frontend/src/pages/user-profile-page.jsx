@@ -32,10 +32,12 @@ const UserProfile = () => {
   });
 
   const validateUpdate = () => {
-    if (!formData.contact_number && !formData.address && !didChangeImage) {
+    
+    if(authUser.contactNumber === formData.contact_number && authUser.address === formData.address && !didChangeImage){
         toast.error("There aren't any changes to update");
         return false;
     }
+
     if (formData.contact_number && /^(09|\+639)\d{9}$/.test(formData.contact_number) === false) {
         toast.error("Invalid contact number format");
         return false;
