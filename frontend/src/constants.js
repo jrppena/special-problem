@@ -19,7 +19,7 @@ const adminFunctions = [
         "description": "Manage classes, subjects, and teachers",
         "icon": "/assets/admin/classroom.svg", 
         "button-name": "Manage Classes",
-        "route": "/admin/classes"
+        "route": "/admin/manage-classes"
     },
     
 ]

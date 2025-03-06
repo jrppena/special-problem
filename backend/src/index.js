@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import sectionRoutes from "./routes/section.route.js";
 import teacherRoutes from "./routes/teacher.route.js";
+import classRoutes from "./routes/class.route.js";
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/section', sectionRoutes);
 app.use('/api/teacher', teacherRoutes);
-
+app.use('/api/class', classRoutes);
 
 if(process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));

@@ -1,18 +1,24 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useAuthStore } from "../../store/useAuthStore";
-import { useSectionStore } from "../../store/useSectionStore";
-import { useTeacherStore } from "../../store/useTeacherStore";
+
 import Navbar from "../../components/navigation-bar";
 import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
-import { schoolYears, gradeLevels } from "../../constants";
 import SearchFilter from "../../components/search-filter";
 import EnrolledStudentsFilter from "../../components/enrolled-students-filter";
+
+
+import { useAuthStore } from "../../store/useAuthStore";
+import { useSectionStore } from "../../store/useSectionStore";
+import { useTeacherStore } from "../../store/useTeacherStore";
+
 import toast from "react-hot-toast";
 import { Pen, Trash2 } from 'lucide-react'; // Correct import for lucide-react icons
+import { schoolYears, gradeLevels } from "../../constants";
+
 
 const AdminManageSectionPage = () => {
   const { authUser } = useAuthStore();
+  
   const { 
     sections, 
     availableAdvisers, 
@@ -22,12 +28,14 @@ const AdminManageSectionPage = () => {
     editSection,
     deleteSection  // Added deletion function from store
   } = useSectionStore();
+
   const { teachers, getTeachers } = useTeacherStore();
 
   // For filtering, grade level is stored as a number; null means "No Filter"
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(
     schoolYears.find((year) => year.isCurrent).name
   );
+  
   const [selectedGradeLevel, setSelectedGradeLevel] = useState(null);
   const [selectedAdviser, setSelectedAdviser] = useState("No Filter");
   const [searchSectionName, setSearchSection] = useState("");
