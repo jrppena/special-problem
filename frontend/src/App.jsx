@@ -1,20 +1,26 @@
 import { Routes, Route } from "react-router-dom";
-// import Home from "./pages/HomePage";
+
 import SignupPage from "./pages/signup-page";
 import LoginPage from "./pages/login-page";
 import VerificationPage from "./pages/verification-page";
+import HomePage from "./pages/home-page";
+import UserProfile from "./pages/user-profile-page";
+import NotFoundPage from "./pages/not-found-page";
+
 import { useAuthStore } from "./store/useAuthStore";
 import { useEffect } from "react";
 import { Loader } from "lucide-react";
-import "./index.css";
-import HomePage from "./pages/home-page";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import AdminVerificationPage from "./pages/admin/admin-verification-page";
-import UserProfile from "./pages/user-profile-page";
+
 import AdminManageSectionPage from "./pages/admin/admin-manage-section-page";
-import AdminManageClassPage from "./pages/admin/admin-manage-class.-page";
-import NotFoundPage from "./pages/not-found-page";
+import AdminManageClassPage from "./pages/admin/admin-manage-class-page";
+import AdminVerificationPage from "./pages/admin/admin-verification-page";
+
+import TeacherSectionManagementPage from "./pages/teacher/teacher-section-management-page";
+
+import "./index.css";
+
 const App = () => {
     const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
@@ -56,9 +62,12 @@ const App = () => {
                 <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
                 <Route path="/verification" element={authUser ? (authUser.accountStatus === "Verified" ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />
                 <Route path="/profile" element={authUser ? <UserProfile /> : <Navigate to="/login" />} />
+                
                 <Route path="/admin/verify" element={authUser && authUser.role === "Admin" ? <AdminVerificationPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-sections" element={authUser && authUser.role === "Admin" ? <AdminManageSectionPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-classes" element={authUser && authUser.role === "Admin" ? <AdminManageClassPage /> : <Navigate to="/" />} />
+
+                <Route path="/teacher/manage-sections" element={authUser && authUser.role === "Teacher" ? <TeacherSectionManagementPage /> : <Navigate to="/" />} />
 
                 {/* Wildcard route for handling undefined routes */}
                 <Route path="*" element={<NotFoundPage />} />

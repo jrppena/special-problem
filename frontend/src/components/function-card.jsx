@@ -1,18 +1,15 @@
 import React from "react";
-import { useNavigate } from "react-router-dom"; // ✅ Correct usage
+import { useNavigate } from "react-router-dom";
 
 const FunctionCard = ({ cardDetails }) => {
-    const navigate = useNavigate(); // ✅ Must be called inside the component
+    const navigate = useNavigate();
 
     const navigateTo = () => { 
-        navigate(cardDetails["route"]); // ✅ Correct navigation call
+        navigate(cardDetails["route"]);
     };
 
     return (
-        <div className="card bg-base-100 w-96 shadow-md rounded-lg overflow-hidden 
-                        transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-gray-50">
-            
-            {/* Larger SVG */}
+        <div className="card bg-base-100 w-full max-w-md mx-auto shadow-md rounded-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-lg hover:bg-gray-50">
             <figure className="flex justify-center items-center w-full py-6 bg-gray-100 transition-all duration-300">
                 <img
                     src={cardDetails.icon}
@@ -21,12 +18,10 @@ const FunctionCard = ({ cardDetails }) => {
                 />
             </figure>
 
-            {/* Card Content */}
             <div className="card-body p-6">
                 <h2 className="card-title text-2xl font-semibold">{cardDetails.name}</h2>
                 <p className="text-gray-600">{cardDetails.description}</p>
 
-                {/* Action Button */}
                 <div className="card-actions justify-end">
                     <button 
                         onClick={navigateTo} 

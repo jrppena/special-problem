@@ -123,9 +123,10 @@ const AdminManageClassPage = () => {
 
     // Apply teacher filter
     if (selectedTeacher !== "No Filter") {
+      console.log(selectedTeacher);
+      console.log(filteredClasses);
       filteredClasses = filteredClasses.filter((classItem) =>
-        classItem.teacher.firstName.toLowerCase().includes(selectedTeacher.toLowerCase()) ||
-        classItem.teacher.lastName.toLowerCase().includes(selectedTeacher.toLowerCase())
+        `${classItem.teacher.firstName} ${classItem.teacher.lastName}`.toLowerCase().includes(selectedTeacher.toLowerCase())
       );
     }
 

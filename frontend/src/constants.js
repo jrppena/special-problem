@@ -43,6 +43,13 @@ const studentFunctions = [
 
 const teacherFunctions = [
     {
+        "name": "Section Management",
+        "description": "Add and manage students to sections you are advising",
+        "icon": "/assets/admin/section.png", 
+        "button-name": "Manage Sections",
+        "route": "/teacher/manage-sections"
+    },
+    {
         "name": "Grades",
         "description": "View and manage grades of students",
         "icon": "/assets/student/grades.svg", 
@@ -57,6 +64,31 @@ const teacherFunctions = [
         "route": "/teacher/trends"
     }
 ]
+
+const adviserFunctions = [
+    {
+        "name": "Section Management",
+        "description": "Add and manage students to sections you are advising",
+        "icon": "/assets/admin/section.png", 
+        "button-name": "Manage Sections",
+        "route": "/teacher/manage-sections"
+    },
+    {
+        "name": "Grades",
+        "description": "View and manage grades of students you are teaching",
+        "icon": "/assets/student/grades.svg", 
+        "button-name": "Manage Grades",
+        "route": "/teacher/grades"
+    },
+    {
+        "name": "Class Trends",
+        "description": "View the trends of student performance through data visualization",
+        "icon": "/assets/student/trends.svg", 
+        "button-name": "View Trends",
+        "route": "/teacher/trends"
+    }
+]
+
 
 export const schoolYears = [
     {
@@ -112,6 +144,7 @@ export const gradeLevels = [
 export const roleFunctions = {
     "Admin": adminFunctions,
     "Student": studentFunctions,
-    "Teacher": teacherFunctions
+    "Teacher": teacherFunctions,
+    "Adviser": adviserFunctions
 }
 

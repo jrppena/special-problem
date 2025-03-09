@@ -5,5 +5,9 @@ import { protectRoute } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.get('/get', protectRoute, teacherRoutes.getTeachers);
+router.get('/check/if-adviser/:id', protectRoute, teacherRoutes.checkIfAdviser);
+router.get('/get/available-students', protectRoute, teacherRoutes.getAvailableStudents);
+router.post('/add/student-to-section', protectRoute, teacherRoutes.addStudentToSection);
+router.delete('/remove/student-from-section', protectRoute, teacherRoutes.removeStudentFromSection);
 
 export default router;

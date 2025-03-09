@@ -7,6 +7,7 @@ export const useSectionStore = create((set) => ({
   sections: [],
   availableAdvisers: [],
   loading: false,
+  adviserSections: [],
 
   fetchSections: async (schoolYear) => {
     set({ loading: true });
@@ -67,4 +68,14 @@ export const useSectionStore = create((set) => ({
       console.error("Error deleting section:", error);
     }
   },
+
+  getAdviserSections: async (userId, schoolYear) => {
+    try {
+      const response = await axiosInstance.get(`/section/get/adviser-sections/${userId}/${schoolYear}`);
+      set({ adviserSections: response.data });
+    } catch (error) {
+      console.error("Error fetching adviser sections:", error);
+    }
+  }
+
 }));

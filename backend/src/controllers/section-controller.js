@@ -107,13 +107,29 @@ const deleteSelectedSection = async (req, res) => {
 };
 
 
+const getAdviserSections = async (req, res) => {
+    const userId = req.params.id;
+    const schoolYear = req.params.schoolYear; // Read schoolYear from query parameters
+
+    try {
+        const sections = await Section.find({ adviser: userId, schoolYear: schoolYear }).populate('students');
+        console.log("Sections: ", sections);
+        res.status(200).json(sections);
+    } catch (error) {
+        res.status(404).json({ message: error.message });
+    }
+};
+
+
+
 
 export const sectionRoutes = {
     getAllSectionsGivenSchoolYear,
     createSection,
     editSelectedSection,
     getAvailableAdvisers,
-    deleteSelectedSection
+    deleteSelectedSection,
+    getAdviserSections
 }
 
 
