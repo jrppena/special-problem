@@ -18,6 +18,7 @@ import AdminManageClassPage from "./pages/admin/admin-manage-class-page";
 import AdminVerificationPage from "./pages/admin/admin-verification-page";
 
 import TeacherSectionManagementPage from "./pages/teacher/teacher-section-management-page";
+import TeacherManageGradesPage from "./pages/teacher/teacher-manage-grades-page";
 
 import "./index.css";
 
@@ -67,7 +68,8 @@ const App = () => {
                 <Route path="/admin/manage-sections" element={authUser && authUser.role === "Admin" ? <AdminManageSectionPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-classes" element={authUser && authUser.role === "Admin" ? <AdminManageClassPage /> : <Navigate to="/" />} />
 
-                <Route path="/teacher/manage-sections" element={authUser && authUser.role === "Teacher" ? <TeacherSectionManagementPage /> : <Navigate to="/" />} />
+                <Route path="/teacher/manage-sections" element={authUser && authUser.role === "Teacher" ? <TeacherSectionManagementPage /> : <Navigate to="/" />} />\
+                <Route path="/teacher/manage-grades" element={authUser && authUser.role === "Teacher" ? <TeacherManageGradesPage /> : <Navigate to="/" />} />
 
                 {/* Wildcard route for handling undefined routes */}
                 <Route path="*" element={<NotFoundPage />} />

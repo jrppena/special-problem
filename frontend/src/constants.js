@@ -54,7 +54,7 @@ const teacherFunctions = [
         "description": "View and manage grades of students",
         "icon": "/assets/student/grades.svg", 
         "button-name": "Manage Grades",
-        "route": "/teacher/grades"
+        "route": "/teacher/manage-grades"
     },
     {
         "name": "Class Trends",

@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import {axiosInstance} from '../lib/axios';
 import toast from 'react-hot-toast';
 import {useSectionStore} from './useSectionStore';
+import { schoolYears } from '../constants';
 
 
 export const useTeacherStore = create((set) => ({
@@ -10,6 +11,8 @@ export const useTeacherStore = create((set) => ({
     isAdviser: false,
     availableStudents: [],
     isFetchingAvailableStudents: false,
+    assignedClasses: [],
+    classGrades: {},
 
     getTeachers: async () => {
         set({isFetchingTeachers: true});
@@ -41,7 +44,6 @@ export const useTeacherStore = create((set) => ({
             params: { gradeLevel, schoolYear },
         });
         set({ availableStudents: response.data });
-        console.log('Available students: ', response.data);
         } catch (error) {
         console.error('Error in getAvailableStudents: ', error);
         toast.error('Failed to fetch available students');
@@ -72,6 +74,43 @@ export const useTeacherStore = create((set) => ({
         console.error('Error in removeStudentFromSection: ', error);
         toast.error('Failed to remove student from section');
         }
-    }
+    },
+
+    getAssignedClasses: async (userId,schoolYear) => {
+        try {
+        const response = await axiosInstance.get('teacher/get/assigned-classes/',
+            {params:{userId,schoolYear}}
+        );
+        set({assignedClasses: response.data});
+        } catch (error) {
+        console.error('Error in getAssignedClasses: ', error);
+        toast.error('Failed to fetch assigned classes');
+        }
+    },
+
+    getClassGrades: async(classId,gradingPeriod,section)=>{
+        try{
+            const response = await axiosInstance.get('/teacher/get/class-grades',{
+                params:{classId,gradingPeriod,section}
+            });
+            set({classGrades: response.data});
+        }catch(error){
+            console.log('Error in getClassGrades: ', error);
+            toast.error('Failed to fetch class grades');
+        }
+    },
+
+    updateStudentGrades: async (selectedClass,editedGrades,selectedSection) => {
+        try {
+            const response = await axiosInstance.post('/teacher/update/student-grades', {selectedClass,editedGrades,selectedSection });
+            toast.success('Student grades updated');
+            set({classGrades: response.data.updatedClassGrades});
+        } catch (error) {
+        console.error('Error in updateStudentGrades: ', error);
+        toast.error('Failed to update student grades');
+        }
+    },
+
+
     
 }));

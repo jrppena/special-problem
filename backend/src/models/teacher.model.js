@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+  import mongoose from "mongoose";
 import User from "./user.model.js"; // Assuming Teacher is a discriminator of User
 
 const teacherSchema = new mongoose.Schema({

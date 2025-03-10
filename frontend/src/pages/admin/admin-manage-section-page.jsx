@@ -116,7 +116,6 @@ const AdminManageSectionPage = () => {
         const exists = availableAdvisers.some(
           (teacher) =>{
             if(teacher._id === modalAdviser._id){
-              console.log("Here1", teacher, modalAdviser);
             }
 
           }
