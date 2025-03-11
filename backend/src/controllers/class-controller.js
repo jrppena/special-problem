@@ -6,7 +6,7 @@ import Student from '../models/student.model.js';
 const fetchClasses = async (req, res) => {
     const { schoolYear } = req.params;
     try {
-        const classes = await Class.find({ schoolYear }).populate('sections').populate('teacher');
+        const classes = await Class.find({ schoolYear }).populate('sections').populate('teachers');
 
         res.status(200).json(classes);
     } catch (error) {
@@ -16,7 +16,9 @@ const fetchClasses = async (req, res) => {
 }
 
 const createClass = async (req, res) => {
-    const { subjectName, gradeLevel, schoolYear, sections, teacher } = req.body;
+    const { subjectName, gradeLevel, schoolYear, sections, teachers } = req.body;
+
+    console.log(subjectName, gradeLevel, schoolYear, sections, teachers);
 
     try {
         // Step 1: Check if a class already exists for the same subject, grade level, and school year
@@ -39,7 +41,7 @@ const createClass = async (req, res) => {
             gradeLevel,
             schoolYear,
             sections,
-            teacher
+            teachers
         });
 
         await newClass.save();
@@ -54,7 +56,7 @@ const createClass = async (req, res) => {
 
 const editClass = async (req, res) => {
     const { id } = req.params; // Class ID to be updated
-    const { subjectName, gradeLevel, schoolYear, sections, teacher } = req.body;
+    const { subjectName, gradeLevel, schoolYear, sections, teachers } = req.body;
 
     try {
         // Step 1: Check if a class already exists with the same subjectName, gradeLevel, schoolYear, and sections
@@ -80,7 +82,7 @@ const editClass = async (req, res) => {
             gradeLevel,
             schoolYear,
             sections,
-            teacher
+            teachers
         }, { new: true }); // `new: true` will return the updated document
 
         if (!updatedClass) {

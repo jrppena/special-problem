@@ -5,7 +5,6 @@ const getAllSectionsGivenSchoolYear = async (req, res) => {
     const {schoolYear} = req.params;
     try {
         const sections = await Section.find({schoolYear}).populate('advisers');
-        console.log("Sections: ", sections);
         return res.status(200).json(sections);
     }
     catch(error){
@@ -23,7 +22,6 @@ const createSection = async (req, res) => {
             _id: { $in: adviserIds }
           });
           
-          console.log("Advisers: ", advisers);
         
         if(!advisers){
             return res.status(404).json({message: "Adviser/s not found"});
@@ -124,7 +122,6 @@ const getAdviserSections = async (req, res) => {
 
     try {
         const sections = await Section.find({ adviser: userId, schoolYear: schoolYear }).populate('students');
-        console.log("Sections: ", sections);
         res.status(200).json(sections);
     } catch (error) {
         res.status(404).json({ message: error.message });

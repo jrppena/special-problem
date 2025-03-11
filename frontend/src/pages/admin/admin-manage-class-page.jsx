@@ -48,12 +48,10 @@ const AdminManageClassPage = () => {
   
   const [modalSections, setModalSections] = useState([]); // Initialize as an empty array
   const [modalSubject, setModalSubject] = useState("");
-  const [modalTeacher, setModalTeacher] = useState(null);
+  const [modalTeachers, setModalTeachers] = useState(null);
   const [modalGradeLevel, setModalGradeLevel] = useState();
 
   const sortingOptions = ["No Filter", "Ascending", "Descending"];
-
-  
 
   const handleSearchClass = (value) => {
     setSearchClassName(value);
@@ -67,7 +65,7 @@ const AdminManageClassPage = () => {
     setCurrentClass(null);
     setModalSubject("");
     setModalSections([]);
-    setModalTeacher(teachers.length > 0 ? teachers[0] : null); // Set first teacher if available
+    setModalTeachers([]);
     setModalGradeLevel(gradeLevels[0].value); // Set first grade level
     setIsModalOpen(true);
   };
@@ -85,7 +83,12 @@ const AdminManageClassPage = () => {
       }))
     );
     
-    setModalTeacher(classItem.teacher);
+   setModalTeachers(
+      classItem.teachers.map((teacher)=>({
+      value: teacher._id,
+      label: `${teacher.firstName} ${teacher.lastName}`
+   }))); // Assuming class has a teacher object
+
     setModalGradeLevel(classItem.gradeLevel); // Assuming class has sections as an array
     setIsModalOpen(true);
   };
@@ -195,14 +198,54 @@ const AdminManageClassPage = () => {
     return sortClasses(filteredClasses);
   };
 
+  const validateClassData = () => {
+    if (!modalSubject.trim() || !modalGradeLevel || !modalSections.length || !modalTeachers.length) {
+      toast.error("All fields are required.");
+      return false;
+    }
+ 
+    
+    if(currentClass){
+      // Extract relevant IDs from modalSections and currentClass.sections
+        const originalSectionIds = currentClass.sections.map((section) => section._id);
+        const currentSectionIds = modalSections.map((section) => section.value); // Use 'value' here
+
+        // Check if the sections match
+        const sectionsMatch =
+          originalSectionIds.length === currentSectionIds.length &&
+          originalSectionIds.every(id => currentSectionIds.includes(id)) &&
+          currentSectionIds.every(id => originalSectionIds.includes(id));
+
+        // Extract relevant IDs from modalTeachers and currentClass.teachers
+        const originalTeacherIds = currentClass.teachers.map((teacher) => teacher._id);
+        const currentTeacherIds = modalTeachers.map((teacher) => teacher.value); // Use 'value' here
+
+        // Check if the teachers match
+        const teachersMatch =
+          originalTeacherIds.length === currentTeacherIds.length &&
+          originalTeacherIds.every(id => currentTeacherIds.includes(id)) &&
+          currentTeacherIds.every(id => originalTeacherIds.includes(id));
+
+        // Check if everything matches
+        if (
+          modalSubject === currentClass.subjectName &&
+          modalGradeLevel === currentClass.gradeLevel &&
+          sectionsMatch &&
+          teachersMatch
+        ) {
+          toast.error("No changes detected.");
+          return false;
+        }
+    }
+    
+  }
     
 
   const handleSaveClass = () => {
-    // if (!modalClassName.trim() || !modalSubject.trim() || !selectedSections.length || !modalTeacher || !modalGradeLevel) {
-    //   toast.error("All fields are required.");
-    //   return;
-    // }
 
+    if(validateClassData() === false){
+      return;
+    }
 
     if (currentClass) {
       const updatedClass = {
@@ -210,18 +253,17 @@ const AdminManageClassPage = () => {
         subjectName: modalSubject,
         gradeLevel: modalGradeLevel,
         sections: modalSections.map((section) => section.value),
-        teacher: modalTeacher._id,
+        teachers: modalTeachers.map((teacher) => teacher.value),
         schoolYear: selectedSchoolYear,
       };
       editClass(updatedClass);
   
     } else {
-      // Create new class logic
       const newClass = {
         subjectName: modalSubject,
         gradeLevel: modalGradeLevel,
         sections: modalSections.map((section) => section.value),
-        teacher: modalTeacher._id,
+        teachers: modalTeachers.map((teacher) => teacher.value),
         schoolYear: selectedSchoolYear,
       };
   
@@ -332,7 +374,7 @@ const AdminManageClassPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {classItem.sections.map((section) => `${section.gradeLevel}-${section.name}`).join(", ")}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{classItem.teacher.firstName} {classItem.teacher.lastName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{classItem.teachers.map((teacher) => `${teacher.firstName} ${teacher.lastName}`).join(", ")}</td>
                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
                           <button
                             className="flex items-center gap-2 text-blue-500 hover:underline"
@@ -413,27 +455,37 @@ const AdminManageClassPage = () => {
                 <Select
                   isMulti
                   name="sections"
-                  options={sections.map(section => ({
-                    value: section._id,   // Unique identifier
-                    label: `${section.name} (Grade ${section.gradeLevel})`, // Display name
-                  })) || []} // Ensure options is always an array
-                  value={modalSections} 
+                  options={sections
+                    .filter((section) => section.gradeLevel === modalGradeLevel) // Filter based on gradeLevel
+                    .map((section) => ({
+                      value: section._id, // Unique identifier
+                      label: `Grade ${section.gradeLevel}-${section.name}`, // Display name
+                    })) || []} // Ensure options is always an array
+                  value={modalSections}
                   onChange={handleModalSectionChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
                 />
-              </div>
-              <Dropdown
-                label="Teacher"
-                options={teachers}
-                selected={modalTeacher}
-                setSelected={(teacher) => {
-                  setModalTeacher(teacher);
-                }}
-                getOptionValue={(teacher) => teacher?._id || teacher?.id || "no-teachers"}
-                getOptionLabel={(teacher) => teacher?.firstName + " " + teacher?.lastName || "No Teacher"}
-              />
 
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1">Teachers</label>
+                <Select
+                  isMulti
+                  name="teachers"
+                  options={teachers.map((teacher) => ({
+                    value: teacher._id, // Unique identifier
+                    label: `${teacher.firstName} ${teacher.lastName}`, // Display name
+                  })) || []} // Ensure options is always an array
+                  value={modalTeachers}
+                  onChange={(selectedOptions) => setModalTeachers(selectedOptions)}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+
+              </div>
+   
+              
             </div>
             <div className="mt-6 flex justify-end space-x-4">
               <button
