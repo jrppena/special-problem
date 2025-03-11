@@ -18,6 +18,9 @@ const TeacherManageGradesPage = () => {
   const [editedGrades, setEditedGrades] = useState({});
   const [isSaveAllEnabled, setIsSaveAllEnabled] = useState(false);
 
+  // Sorting state
+  const [sortByStudentLastName, setSortByStudentLastName] = useState("No Filter");
+
   const { assignedClasses, getAssignedClasses, classGrades, getClassGrades, updateStudentGrades } = useTeacherStore();
   const { authUser } = useAuthStore();
 
@@ -131,6 +134,19 @@ const TeacherManageGradesPage = () => {
     }
   };
 
+  // Sorting options for students (sorted by lastName)
+  const sortingOptions = ["No Filter", "Ascending", "Descending"];
+
+  const sortStudents = (students) => {
+    let sortedStudents = [...students];
+    if (sortByStudentLastName === "Ascending") {
+      sortedStudents.sort((a, b) => a.lastName.localeCompare(b.lastName));
+    } else if (sortByStudentLastName === "Descending") {
+      sortedStudents.sort((a, b) => b.lastName.localeCompare(a.lastName));
+    }
+    return sortedStudents;
+  };
+
   const quarterOptions = [
     { value: "Q1", label: "Quarter 1" },
     { value: "Q2", label: "Quarter 2" },
@@ -178,7 +194,9 @@ const TeacherManageGradesPage = () => {
                       selected={selectedSection ? `${selectedSection.gradeLevel}-${selectedSection.name}` : ""}
                       setSelected={(formattedName) => {
                         const [gradeLevel, sectionName] = formattedName.split("-");
-                        setSelectedSection(selectedClass.sections.find((s) => s.gradeLevel === gradeLevel && s.name === sectionName));
+                        setSelectedSection(
+                          selectedClass.sections.find((s) => s.gradeLevel === gradeLevel && s.name === sectionName)
+                        );
                       }}
                     />
                     <Dropdown
@@ -188,6 +206,13 @@ const TeacherManageGradesPage = () => {
                       setSelected={(quarter) =>
                         setSelectedQuarter(quarterOptions.find((q) => q.label === quarter).value)
                       }
+                    />
+                    {/* Sorting */}
+                    <Dropdown
+                      label="Sort by Last Name"
+                      options={sortingOptions}
+                      selected={sortByStudentLastName}
+                      setSelected={setSortByStudentLastName}
                     />
                   </>
                 )}
@@ -217,51 +242,50 @@ const TeacherManageGradesPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {selectedSection?.students?.length > 0 &&
-                        selectedSection.students.map((student) => (
-                          <tr key={student._id}>
+                      {sortStudents(selectedSection.students).map((student) => (
+                        <tr key={student._id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {student.firstName} {student.lastName}
+                          </td>
+                          {selectedQuarter === "all" ? (
+                            <>
+                              {["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+                                <td key={quarter} className="px-6 py-4 whitespace-nowrap">
+                                  {editMode ? (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      className="border border-gray-300 rounded px-2 py-1 w-20"
+                                      value={editedGrades[student._id]?.[quarter] ?? ""}
+                                      onChange={(e) => handleGradeChange(student._id, quarter, e.target.value)}
+                                      placeholder="—"
+                                    />
+                                  ) : (
+                                    <span className="text-gray-700">{classGrades[student._id]?.[quarter] || "—"}</span>
+                                  )}
+                                </td>
+                              ))}
+                            </>
+                          ) : (
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {student.firstName} {student.lastName}
+                              {editMode ? (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  className="border border-gray-300 rounded px-2 py-1 w-20"
+                                  value={editedGrades[student._id]?.[selectedQuarter] ?? ""}
+                                  onChange={(e) => handleGradeChange(student._id, selectedQuarter, e.target.value)}
+                                  placeholder="—"
+                                />
+                              ) : (
+                                <span className="text-gray-700">{classGrades[student._id]?.[selectedQuarter] || "—"}</span>
+                              )}
                             </td>
-                            {selectedQuarter === "all" ? (
-                              <>
-                                {["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                                  <td key={quarter} className="px-6 py-4 whitespace-nowrap">
-                                    {editMode ? (
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        className="border border-gray-300 rounded px-2 py-1 w-20"
-                                        value={editedGrades[student._id]?.[quarter] ?? ""}
-                                        onChange={(e) => handleGradeChange(student._id, quarter, e.target.value)}
-                                        placeholder="—"
-                                      />
-                                    ) : (
-                                      <span className="text-gray-700">{classGrades[student._id]?.[quarter] || "—"}</span>
-                                    )}
-                                  </td>
-                                ))}
-                              </>
-                            ) : (
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {editMode ? (
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    className="border border-gray-300 rounded px-2 py-1 w-20"
-                                    value={editedGrades[student._id]?.[selectedQuarter] ?? ""}
-                                    onChange={(e) => handleGradeChange(student._id, selectedQuarter, e.target.value)}
-                                    placeholder="—"
-                                  />
-                                ) : (
-                                  <span className="text-gray-700">{classGrades[student._id]?.[selectedQuarter] || "—"}</span>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        ))}
+                          )}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
