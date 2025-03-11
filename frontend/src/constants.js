@@ -30,7 +30,7 @@ const studentFunctions = [
         "description": "View your grades and performance in subjects",
         "icon": "/assets/student/grades.svg", 
         "button-name": "View Grades",
-        "route": "/student/grades"
+        "route": "/student/view-grades"
     },
     {
         "name": "Trends",

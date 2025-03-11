@@ -116,8 +116,6 @@ const addStudentToSection =  async (req, res) => {
     const gradingPeriod = req.query.gradingPeriod;
     const section = req.query.section;
 
-    console.log("getClassGrades:", classId, gradingPeriod, section);
-
     try {
         // Initialize gradeMap with default values for all students in the section
         const gradeMap = {};

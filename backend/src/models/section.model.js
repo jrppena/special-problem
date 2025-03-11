@@ -6,7 +6,6 @@ const sectionSchema = new mongoose.Schema({
   adviser: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher" }, // Section adviser
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }], // Enrolled students
   schoolYear: { type: String, required: true }, // e.g., "2024-2025"
-  classes: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }], // ✅ List of subjects taken by the section
 });
 
 const Section = mongoose.model("Section", sectionSchema);
