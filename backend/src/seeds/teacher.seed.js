@@ -72,85 +72,158 @@ const seedUsers = {
       accountStatus: "Verified",
       role: "Student",
     },
+    {
+      email: "jgalag@gmail.com",
+      firstName: "Jaymar",
+      lastName: "Galag",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
   ],
 
   teachers: [
     // Teachers
     {
-      email: "james.anderson@example.com",
-      fullName: "James Anderson",
+      email: "ajgalang@gmail.com",
+      firstName: "Ara Jane",
+      lastName: "Galang",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/1.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "william.clark@example.com",
-      fullName: "William Clark",
+      email: "sheenabelleca@gmail.com",
+      firstName: "Sheena",
+      lastName: "Belleca",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/2.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "benjamin.taylor@example.com",
-      fullName: "Benjamin Taylor",
+      email: "jmpascua@gmail.com",
+      firstName: "Jamica",
+      lastName: "Pascua",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/3.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "lucas.moore@example.com",
-      fullName: "Lucas Moore",
+      email: "rzepe@gmail.com",
+      firstName: "Rachel",
+      lastName: "Zape",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/4.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "henry.jackson@example.com",
-      fullName: "Henry Jackson",
+      email: "mrbelano@gmail.com",
+      firstName: "Mary Rose",
+      lastName: "Belano",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/5.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "alexander.martin@example.com",
-      fullName: "Alexander Martin",
+      email: "mfperiera@gmail.com",
+      firstName: "Ma. Ferly",
+      lastName: "Periera",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/6.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "daniel.rodriguez@example.com",
-      fullName: "Daniel Rodriguez",
+      email: "mjreconcillo@gmail.com",
+      firstName: "Mark Joffet",
+      lastName: "Reconcillo",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/7.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "michael.walker@example.com",
-      fullName: "Michael Walker",
+      email: "mabotial@gmail.com",
+      firstName: "Michelle Ann",
+      lastName: "Botial",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/8.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "david.harris@example.com",
-      fullName: "David Harris",
+      email: "ccaballero@gmail.com",
+      firstName: "Catherine",
+      lastName: "Caballero",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/9.jpg",
       accountStatus: "Verified",
       role: "Teacher",
     },
     {
-      email: "richard.martinez@example.com",
-      fullName: "Richard Martinez",
+      email: "cabugao@gmail.com",
+      firstName: "Catherine",
+      lastName: "Abugao",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "jsiarot@gmail.com",
+      firstName: "Jennifer",
+      lastName: "Siarot",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "jlgarcera@gmail.com",
+      firstName: "John Leroy",
+      lastName: "Garcera",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "gconmigo@gmail.com",
+      firstName: "Generoso",
+      lastName: "Conmigo",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "ehpacamarra@gmail.com",
+      firstName: "Earl Henrick",
+      lastName: "Pacamarra",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "hrpunto@gmail.com",
+      firstName: "Helen",
+      lastName: "Punto",
+      password: "123456",
+      profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
+      accountStatus: "Verified",
+      role: "Teacher",
+    },
+    {
+      email: "jbgutierrez@gmail.com",
+      firstName: "Janely",
+      lastName: "Gutierrez",
       password: "123456",
       profilePic: "https://randomuser.me/api/portraits/men/10.jpg",
       accountStatus: "Verified",
@@ -159,34 +232,9 @@ const seedUsers = {
   ],
 };
 
-// Function to split fullName into firstName and lastName
-const splitName = (fullName) => {
-  const [firstName, lastName] = fullName.split(" ");
-  return { firstName, lastName };
-};
-
 const seedDatabase = async () => {
   try {
     await connectDB();
-
-    // Process students and teachers to split fullName into firstName and lastName
-    const studentsWithNames = seedUsers.students.map((student) => {
-      const { firstName, lastName } = splitName(student.fullName);
-      return {
-        ...student,
-        firstName,
-        lastName,
-      };
-    });
-
-    const teachersWithNames = seedUsers.teachers.map((teacher) => {
-      const { firstName, lastName } = splitName(teacher.fullName);
-      return {
-        ...teacher,
-        firstName,
-        lastName,
-      };
-    });
 
     // Clear existing data before seeding new data (Optional)
     await Teacher.deleteMany({});
@@ -195,7 +243,7 @@ const seedDatabase = async () => {
     // await Student.insertMany(studentsWithNames);
 
     // Insert the teachers data with separated firstName and lastName
-    await Teacher.insertMany(teachersWithNames);
+    await Teacher.insertMany(seedUsers.teachers);
 
     console.log("Database seeded successfully");
   } catch (error) {

@@ -14,6 +14,7 @@ import { useTeacherStore } from "../../store/useTeacherStore";
 import toast from "react-hot-toast";
 import { Pen, Trash2 } from 'lucide-react'; // Correct import for lucide-react icons
 import { schoolYears, gradeLevels } from "../../constants";
+import Select from "react-select";
 
 
 const AdminManageSectionPage = () => {
@@ -42,7 +43,6 @@ const AdminManageSectionPage = () => {
   const [sortByGradeLevel, setSortByGradeLevel] = useState("No Filter");
   const [sortByAdviser, setSortByAdviser] = useState("No Filter");
   const [sortBySection, setSortBySection] = useState("No Filter");
-  const [studentCount, setStudentCount] = useState(null);
 
   // Modal states for adding/editing a section
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,7 +52,7 @@ const AdminManageSectionPage = () => {
   const [modalGradeLevel, setModalGradeLevel] = useState(
     gradeLevels[0]?.value || null
   );
-  const [modalAdviser, setModalAdviser] = useState(null);
+  const [modalAdvisers, setModalAdvisers] = useState(null);
 
   const sortingOptions = ["No Filter", "Ascending", "Descending"];
 
@@ -79,10 +79,14 @@ const AdminManageSectionPage = () => {
 
   // Open modal for adding a section.
   const openAddSectionModal = () => {
+
+    if(availableAdvisers.length === 0){
+      toast.error("Cannot add new section: No advisers available");
+      return
+    };
     setCurrentSection(null);
     setModalSectionName("");
     setModalGradeLevel(gradeLevels[0]?.value || null);
-    setModalAdviser(availableAdvisers && availableAdvisers.length > 0 ? availableAdvisers[0] : null); //
 
     setIsModalOpen(true);
   };
@@ -92,8 +96,15 @@ const AdminManageSectionPage = () => {
     setCurrentSection(section);
     setModalSectionName(section.name);
     setModalGradeLevel(section.gradeLevel);
-    console.log(section);
-    setModalAdviser(section.adviser);
+    // Set modal advisers for editing based on the section.advisers]
+    console.log(section.advisers);
+    setModalAdvisers(
+      section.advisers.map((adviser) => ({
+        value: adviser._id,
+        label: adviser.firstName + " " + adviser.lastName,
+      }))
+    );
+    
     setIsModalOpen(true);
   };
 
@@ -109,37 +120,6 @@ const AdminManageSectionPage = () => {
     setIsModalOpen(false);
   };
 
-  // Compute merged advisers list.
-  const mergedAdvisers = useMemo(() => {
-    if (availableAdvisers && availableAdvisers.length > 0) {
-      if (modalAdviser) {
-        const exists = availableAdvisers.some(
-          (teacher) =>{
-            if(teacher._id === modalAdviser._id){
-            }
-
-          }
-        );
-        if (!exists) {
-          return [modalAdviser, ...availableAdvisers];
-        }
-      }
-      return availableAdvisers;
-    } else {
-      return !currentSection
-        ? [
-            {
-              id: "no-adviser",
-              firstName: "No available advisers",
-              lastName: "",
-            },
-          ]
-        : modalAdviser
-        ? [modalAdviser]
-        : [];
-    }
-  }, [modalAdviser, availableAdvisers, currentSection]);
-
   const validateSectionData = () => {
     if (!modalSectionName.trim()) {
       toast.error("Please enter a section name");
@@ -149,7 +129,7 @@ const AdminManageSectionPage = () => {
       toast.error("Please select a grade level");
       return false;
     }
-    if (!modalAdviser || modalAdviser.id === "no-adviser") {
+    if (!modalAdvisers) {
       toast.error("Please select an adviser");
       return false;
     }
@@ -157,33 +137,37 @@ const AdminManageSectionPage = () => {
   };
 
   const handleSaveSection = () => {
-    console.log("3. modaladviser", modalAdviser);
 
-    if (!currentSection && (!availableAdvisers || availableAdvisers.length === 0)) {
-      toast.error("Cannot add new section: No advisers available");
-      return;
-    }
+   
     if (!validateSectionData()) return;
 
     if (currentSection) {
-      const originalAdviserId =
-        currentSection.adviser?._id || currentSection.adviser?.id;
-      const currentAdviserId = modalAdviser?._id || modalAdviser?.id;
+      const originalAdviserIds = currentSection.advisers.map((adviser) => adviser._id);
+      const currentAdviserIds = modalAdvisers.map((adviser) => adviser.value); // Use 'value' here
+
+      const advisersMatch = 
+        originalAdviserIds.length === currentAdviserIds.length &&
+        originalAdviserIds.every(id => currentAdviserIds.includes(id)) &&
+        currentAdviserIds.every(id => originalAdviserIds.includes(id));
+
+      if(modalAdvisers.length === 0){
+        toast.error("Please select an adviser");
+        return;
+      }
       if (
         modalSectionName.trim() === currentSection.name &&
         modalGradeLevel === currentSection.gradeLevel &&
-        currentAdviserId === originalAdviserId
+        advisersMatch
       ) {
         toast.error("No changes detected");
         return;
       }
-
       
       const updatedSection = {
         id: currentSection?.id || currentSection?._id,
         sectionName: modalSectionName,
         gradeLevel: modalGradeLevel,
-        adviser: modalAdviser?._id || modalAdviser?.id,
+        advisers: modalAdvisers.map((adviser) => adviser.value),
         schoolYear: selectedSchoolYear
       };
       editSection(updatedSection);
@@ -191,11 +175,11 @@ const AdminManageSectionPage = () => {
       const newSection = {
         sectionName: modalSectionName,
         gradeLevel: modalGradeLevel,
-        adviserId: modalAdviser?._id || modalAdviser?.id,
+        adviserIds: modalAdvisers.map((adviser) => adviser.value),
         schoolYear: selectedSchoolYear,
       };
       createSection(newSection);
-      setModalAdviser(null);
+      setModalAdvisers(null);
     }
     closeModal();
   };
@@ -231,32 +215,35 @@ const AdminManageSectionPage = () => {
       );
     }
     if (selectedAdviser !== "No Filter") {
+      console.log("Here")
       filtered = filtered.filter((section) => {
-        if (!section.adviser) return false;
-        const adviserName =
-          section.adviser.firstName + " " + section.adviser.lastName;
-        return adviserName === selectedAdviser;
+        if (!section.advisers || section.advisers.length === 0) return false;
+    
+        // Check if any adviser in the section's advisers matches the selectedAdviser
+        return section.advisers.some((adviser) => {
+          const adviserName = adviser.firstName + " " + adviser.lastName;
+          return adviserName === selectedAdviser;
+        });
       });
     }
+    
     if (searchSectionName) {
       filtered = filtered.filter((section) =>
         section.name.toLowerCase().includes(searchSectionName.toLowerCase())
       );
     }
-    if (studentCount !== null) {
-      filtered = filtered.filter(
-        (section) => section.enrolled >= studentCount
-      );
-    }
+
     if (activeSort) {
       filtered = filtered.slice().sort((a, b) => {
         if (activeSort.field === "adviser") {
-          const aAdviser = a.adviser
-            ? a.adviser.firstName + " " + a.adviser.lastName
-            : "";
-          const bAdviser = b.adviser
-            ? b.adviser.firstName + " " + b.adviser.lastName
-            : "";
+          const getAdviserNames = (advisers) => {
+            if (!advisers || advisers.length === 0) return "";
+            return advisers.map((adviser) => adviser.firstName + " " + adviser.lastName).join(", ");
+          };
+      
+          const aAdviser = getAdviserNames(a.advisers);
+          const bAdviser = getAdviserNames(b.advisers);
+      
           return activeSort.order === "Ascending"
             ? aAdviser.localeCompare(bAdviser)
             : bAdviser.localeCompare(aAdviser);
@@ -282,7 +269,6 @@ const AdminManageSectionPage = () => {
     selectedGradeLevel,
     selectedAdviser,
     searchSectionName,
-    studentCount,
     activeSort,
   ]);
 
@@ -335,10 +321,6 @@ const AdminManageSectionPage = () => {
               value={searchSectionName}
               onChange={handleSearchSection}
               placeholder="Enter section name..."
-            />
-            <EnrolledStudentsFilter
-              selected={studentCount}
-              setSelected={handleSliderChange}
             />
           </div>
         </div>
@@ -407,7 +389,7 @@ const AdminManageSectionPage = () => {
                     </th>
 
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Adviser
+                      Adviser/s
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Students Enrolled
@@ -419,7 +401,8 @@ const AdminManageSectionPage = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {computedSections.map((section) => (
+                  {
+                  computedSections.map((section) => (
                     <tr key={section.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {section.gradeLevel}
@@ -429,9 +412,7 @@ const AdminManageSectionPage = () => {
                       </td>
 
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {section.adviser
-                          ? section.adviser.firstName + " " + section.adviser.lastName
-                          : ""}
+                        {section.advisers.map((adviser) => adviser.firstName + " " + adviser.lastName).join(", ")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {section.students.length}
@@ -509,19 +490,20 @@ const AdminManageSectionPage = () => {
                   }
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                 />
-              </div>
-              <Dropdown
-                label="Available Advisers"
-                options={mergedAdvisers}
-                selected={modalAdviser}
-                setSelected={setModalAdviser}
-                getOptionValue={(teacher) => teacher?._id || teacher?.id || "no-adviser"}  // Safely access _id
-                getOptionLabel={(teacher) =>
-                  `${teacher.firstName} ${teacher.lastName}` || "No Adviser Available"
-                }
-                disabled={mergedAdvisers[0]?.id === "no-adviser"}
-              />
-
+            </div>
+              <Select
+              isMulti
+              options={availableAdvisers.map((adviser) => ({
+                value: adviser._id,
+                label: adviser.firstName + " " + adviser.lastName,
+              }))} 
+              value={modalAdvisers}
+              onChange={setModalAdvisers}
+              placeholder={availableAdvisers.length === 0 ? "No advisers available" : "Select adviser"}
+              isDisabled={availableAdvisers.length === 0}
+              className="react-select-container"
+              classNamePrefix="react-select"
+            />
             </div>
             <div className="mt-6 flex justify-end space-x-4">
               <button

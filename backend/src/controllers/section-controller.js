@@ -4,7 +4,8 @@ import Teacher from '../models/teacher.model.js';
 const getAllSectionsGivenSchoolYear = async (req, res) => {
     const {schoolYear} = req.params;
     try {
-        const sections = await Section.find({schoolYear}).populate('adviser');
+        const sections = await Section.find({schoolYear}).populate('advisers');
+        console.log("Sections: ", sections);
         return res.status(200).json(sections);
     }
     catch(error){
@@ -15,16 +16,21 @@ const getAllSectionsGivenSchoolYear = async (req, res) => {
 
 
 const createSection = async (req, res) => {
-    const {sectionName, gradeLevel, adviserId, schoolYear} = req.body;
+    const {sectionName, gradeLevel, adviserIds, schoolYear} = req.body;
     try {
         
-        const adviser = await Teacher.findById(adviserId);
+        const advisers = await Teacher.find({
+            _id: { $in: adviserIds }
+          });
+          
+          console.log("Advisers: ", advisers);
         
-        if(!adviser){
-            return res.status(404).json({message: "Adviser not found"});
+        if(!advisers){
+            return res.status(404).json({message: "Adviser/s not found"});
         }
 
         const existingSection = await Section.findOne({name: sectionName,  schoolYear});
+
         if(existingSection){
             return res.status(400).json({message: "Section already exists"});
         }
@@ -32,13 +38,12 @@ const createSection = async (req, res) => {
         const newSection = new Section({
             name: sectionName,
             gradeLevel: gradeLevel,
-            adviser: adviser,
+            advisers: adviserIds,
             schoolYear
         });
 
         await newSection.save();
 
-        console.log("Section created successfully");
         return res.status(201).json({message: "Section created successfully"});
     }
     catch(error){
@@ -49,9 +54,11 @@ const createSection = async (req, res) => {
 
 const editSelectedSection = async (req, res) => {
     const {id} = req.params;
-    const {sectionName,  adviser} = req.body;
-    let {gradeLevel} = req.body;
+    const sectionName = req.body.sectionName;
+    let gradeLevel = req.body.gradeLevel;
+    const advisers = req.body.advisers;
 
+    
     if (typeof gradeLevel === "string") {
         gradeLevel = parseInt(gradeLevel.split(" ")[1], 10);
     }
@@ -63,7 +70,7 @@ const editSelectedSection = async (req, res) => {
         }
         section.name = sectionName;
         section.gradeLevel = gradeLevel;
-        section.adviser = adviser;
+        section.advisers = advisers;
         await section.save();
         return res.status(200).json({message: "Section updated successfully"});
     }
@@ -76,20 +83,24 @@ const editSelectedSection = async (req, res) => {
 // Get all teachers who are not yet assigned as advisers for the current school year
 const getAvailableAdvisers = async (req, res) => {
     const { schoolYear } = req.params;
-  try {
+  
+    try {
+      // Get all teacher IDs that are already assigned as advisers in the given school year
+      const assignedAdvisers = await Section.distinct("advisers", { schoolYear });
+  
+      // Find teachers who are NOT in the assigned advisers list and are 'Verified'
+      const availableAdvisers = await Teacher.find({
+        _id: { $nin: assignedAdvisers },
+        accountStatus: "Verified"
+      });
 
-    // Get all teacher IDs that are already assigned as advisers in the given school year
-    const assignedAdvisers = await Section.distinct("adviser", { schoolYear });
-
-    // Find teachers who are NOT in the assigned advisers list
-    const availableAdvisers = await Teacher.find({ _id: { $nin: assignedAdvisers }, accountStatus: "Verified" });
-
-    res.status(200).json(availableAdvisers);
-  } catch (error) {
-    console.error("Error fetching available advisers:", error);
-    res.status(500).json({ error: "Internal server error while fetching available advisers." });
-  }
-}
+      res.status(200).json(availableAdvisers);
+    } catch (error) {
+      console.error("Error fetching available advisers:", error);
+      res.status(500).json({ error: "Internal server error while fetching available advisers." });
+    }
+  };
+  
 
 const deleteSelectedSection = async (req, res) => {
     const { id } = req.params;
