@@ -121,12 +121,17 @@ const getAdviserSections = async (req, res) => {
     const schoolYear = req.params.schoolYear; // Read schoolYear from query parameters
 
     try {
-        const sections = await Section.find({ adviser: userId, schoolYear: schoolYear }).populate('students');
+        const sections = await Section.find({ 
+            advisers: { $in: [userId] }, // Check if userId is in the advisers array
+            schoolYear: schoolYear 
+        }).populate('students');
+        
         res.status(200).json(sections);
     } catch (error) {
         res.status(404).json({ message: error.message });
     }
 };
+
 
 
 

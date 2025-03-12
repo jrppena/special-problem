@@ -127,13 +127,14 @@ const AdminManageClassPage = () => {
 
     // Apply teacher filter
     if (selectedTeacher !== "No Filter") {
-      console.log(selectedTeacher);
       console.log(filteredClasses);
       filteredClasses = filteredClasses.filter((classItem) =>
-        `${classItem.teacher.firstName} ${classItem.teacher.lastName}`.toLowerCase().includes(selectedTeacher.toLowerCase())
+        classItem.teachers.some((teacher) =>
+          `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(selectedTeacher.toLowerCase())
+        )
       );
     }
-
+    
     // Apply grade level filter
     if (selectedGradeLevel !== "No Filter") {
       filteredClasses = filteredClasses.filter(
@@ -179,18 +180,19 @@ const AdminManageClassPage = () => {
     // Apply sorting by teacher name
     if (sortByTeacher === "Ascending") {
       sortedClasses = sortedClasses.sort((a, b) => {
-        const teacherA = `${a.teacher.firstName} ${a.teacher.lastName}`;
-        const teacherB = `${b.teacher.firstName} ${b.teacher.lastName}`;
+        const teacherA = `${a.teachers[0].firstName} ${a.teachers[0].lastName}`;
+        const teacherB = `${b.teachers[0].firstName} ${b.teachers[0].lastName}`;
         return teacherA.localeCompare(teacherB);
       });
+    
     } else if (sortByTeacher === "Descending") {
       sortedClasses = sortedClasses.sort((a, b) => {
-        const teacherA = `${a.teacher.firstName} ${a.teacher.lastName}`;
-        const teacherB = `${b.teacher.firstName} ${b.teacher.lastName}`;
+        const teacherA = `${a.teachers[0].firstName} ${a.teachers[0].lastName}`;
+        const teacherB = `${b.teachers[0].firstName} ${b.teachers[0].lastName}`;
         return teacherB.localeCompare(teacherA);
       });
     }
-
+    
     return sortedClasses;
   };
 

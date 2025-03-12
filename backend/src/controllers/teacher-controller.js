@@ -97,7 +97,7 @@ const addStudentToSection =  async (req, res) => {
     const schoolYear = req.query.schoolYear;
 
     try {
-        const classes = await Class.find({ teacher: userId, schoolYear: schoolYear })
+        const classes = await Class.find({ teachers: { $in: [userId] }, schoolYear: schoolYear })
           .populate({
             path: 'sections', // First populate sections
             populate: {
@@ -213,7 +213,6 @@ const addStudentToSection =  async (req, res) => {
 
           const bulkOperations = [];
           const existingGradesMap = await getExistingGradesMap(selectedClass);
-
           // 🟢 Prepare bulk operations
           for (const studentId in editedGrades) {
               for (const gradingPeriod in editedGrades[studentId]) {
@@ -235,6 +234,7 @@ const addStudentToSection =  async (req, res) => {
                   }
               }
           }
+          console.log("bulkOperations", bulkOperations);
 
           // 🟢 Execute batch update if there are changes
           if (bulkOperations.length > 0) {
@@ -258,6 +258,7 @@ const addStudentToSection =  async (req, res) => {
               }
               updatedClassGrades[grade.student._id][grade.gradingPeriod] = grade.gradeValue;
           });
+          console.log("updatedClassGrades", updatedClassGrades);
 
           return res.status(200).json({ 
               message: "Grades updated successfully.", 

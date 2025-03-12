@@ -149,57 +149,85 @@
 
               </div>
             </div>
-
-            {/* Students Table */}
-            <div className="bg-white p-6 rounded-lg shadow flex-1 overflow-x-auto">
-              <h3 className="text-xl font-semibold mb-4">Grade {selectedSection?.gradeLevel.toString()}-{selectedSection?.name} Class List</h3>
-              {handleFilterAndSort().length === 0 ? (
-                <div className="text-center text-gray-500">No students found</div>
+            {adviserSections.length === 0 ? (
+                <div className="bg-white p-6 rounded-lg shadow flex-1">
+                  <div className="text-center text-gray-500">
+                    You are not an adviser for any sections this school year.
+                  </div>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {handleFilterAndSort().map((student) => (
-                        <tr key={student._id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <img src={student.profilePic?.trim() ? student.profilePic : "/avatar.png"} 
-                                alt="Profile" 
-                                className="w-10 h-10 rounded-full object-cover" />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">{student.firstName} {student.lastName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{student.contactNumber?.trim() ? student.contactNumber : "Not Yet Updated"}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{student.address?.trim() ? student.address : "Not Yet Updated"}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <button onClick={() => handleRemoveStudent(student._id)} className="text-red-500 hover:underline flex items-center gap-1">
-                              <Trash2 className="w-5 h-5" />
-                              Remove
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="bg-white p-6 rounded-lg shadow flex-1 overflow-x-auto">
+                  <h3 className="text-xl font-semibold mb-4">
+                    Grade {selectedSection?.gradeLevel.toString()}-{selectedSection?.name} Class List
+                  </h3>
+                  {handleFilterAndSort().length === 0 ? (
+                    <div className="text-center text-gray-500">No students found</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Profile
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Student Name
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Contact Number
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Address
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {handleFilterAndSort().map((student) => (
+                            <tr key={student._id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <img
+                                  src={student.profilePic?.trim() ? student.profilePic : "/avatar.png"}
+                                  alt="Profile"
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">{student.firstName} {student.lastName}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {student.contactNumber?.trim() ? student.contactNumber : "Not Yet Updated"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {student.address?.trim() ? student.address : "Not Yet Updated"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <button
+                                  onClick={() => handleRemoveStudent(student._id)}
+                                  className="text-red-500 hover:underline flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="mb-4 mt-5">
+                    <button
+                      onClick={openModal}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                      Add Student to Class
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <div className="mb-4 mt-5">
-                <button
-                  onClick={openModal}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Add Student to Class
-                </button>
-              </div>
-            </div>
           </div>
         </div>
         {isModalOpen && (

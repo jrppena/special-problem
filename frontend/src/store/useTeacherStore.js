@@ -100,14 +100,16 @@ export const useTeacherStore = create((set) => ({
         }
     },
 
-    updateStudentGrades: async (selectedClass,editedGrades,selectedSection) => {
+    updateStudentGrades: async (selectedClass,editedGrades,section) => {
+     
         try {
-            const response = await axiosInstance.post('/teacher/update/student-grades', {selectedClass,editedGrades,selectedSection });
+            const response = await axiosInstance.post('/teacher/update/student-grades', {selectedClass,editedGrades,section });
+            console.log(response.data.message)
             toast.success('Student grades updated');
             set({classGrades: response.data.updatedClassGrades});
         } catch (error) {
-        console.error('Error in updateStudentGrades: ', error);
-        toast.error('Failed to update student grades');
+            console.error('Error in updateStudentGrades: ', error);
+            toast.error('Failed to update student grades');
         }
     },
 
