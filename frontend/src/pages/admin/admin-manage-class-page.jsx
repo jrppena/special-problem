@@ -15,13 +15,14 @@ import { useClassStore } from "../../store/useClassStore";
 import { Pen, Trash2 } from "lucide-react"; // Correct import for lucide-react icons
 import toast from "react-hot-toast";
 import { gradeLevels } from "../../constants";
+import Exceljs from "exceljs";
 
 
 const AdminManageClassPage = () => {
   
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
     
-  const {classes, fetchClasses, createClass, editClass, deleteClass} = useClassStore();
+  const {classes, fetchClasses, createClass, editClass, deleteClass,createClassThroughImport,isCreatingClasses,deleteAllClassesGivenSchoolYear} = useClassStore();
   const {sections, fetchSections} = useSectionStore();
   const {teachers, getTeachers} = useTeacherStore();
   
@@ -274,6 +275,93 @@ const AdminManageClassPage = () => {
     closeModal();
   };
 
+  let fileInput = null; // Reference to the file input element
+
+
+
+  const handleImportClasses = (e) => {
+    const file = e.target.files[0]; // Get the file from input
+    if (!file) {
+      console.error("No file selected.");
+      return;
+    }
+  
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const buffer = e.target.result;
+      const data = new Uint8Array(buffer);
+  
+      const workbook = new Exceljs.Workbook();
+      try {
+        await workbook.xlsx.load(data); // Load the data into the workbook
+  
+        const worksheet = workbook.getWorksheet(1); // Get the first worksheet
+        if (!worksheet) {
+          console.error("No worksheet found.");
+          return;
+        }
+  
+        const classes = [];
+        worksheet.eachRow((row, rowNumber) => {
+          if (rowNumber > 1) { // Skip the first row (header)
+            // Extract raw data from the row
+            const subjectName = row.getCell(1).value;
+            const gradeLevel = parseInt(row.getCell(2).value); // Assuming grade level is in column 2
+            const sectionNames = row.getCell(3).value ? row.getCell(3).value.split(";") : []; // Assuming sections are comma-separated
+            const teacherFullNames = row.getCell(4).value ? row.getCell(4).value.split(";").map(name => name.trim()) : []; // Assuming teacher full names are comma-separated
+  
+            // Map section names to their _id values from the sections array
+            const sectionsMapped = sectionNames.map(sectionName => {
+              const trimmedSectionName = sectionName.trim();
+              // Find the section by name in the sections array and return the _id
+              const section = sections.find(s => s.name === trimmedSectionName);
+              return section ? section._id : trimmedSectionName; // Use section id, or return name if not found
+            });
+  
+            // Map teacher full names to their IDs by creating full name from firstName and lastName
+            const teachersMapped = teacherFullNames.map(fullName => {
+              // Find teacher by comparing the full name
+              const teacher = Object.values(teachers).find(
+                (teacher) => `${teacher.firstName} ${teacher.lastName}` === fullName
+              );
+              
+              return teacher ? teacher._id : fullName; // Return the teacher's ID or the full name if not found
+            });
+  
+            // Construct the class object
+            const classesData = {
+              subjectName: subjectName,
+              gradeLevel: gradeLevel,
+              sections: sectionsMapped, // Array of section IDs
+              teachers: teachersMapped, // Array of teacher IDs
+              schoolYear: selectedSchoolYear, // Hardcoded school year, adjust as necessary
+            };
+  
+            classes.push(classesData);
+          }
+        });
+  
+        createClassThroughImport(classes, selectedSchoolYear); // Call the store function to create classes
+  
+        // Reset the file input after processing
+        fileInput.value = null; // This resets the file input value
+  
+      } catch (error) {
+        console.error("Error reading the Excel file:", error);
+      }
+    };
+  
+    reader.readAsArrayBuffer(file); // Read the file as an array buffer
+  };
+
+  const handleDeleteAllClasses = () => {
+    
+    if (window.confirm("Are you sure you want to delete all classes?")) {
+      deleteAllClassesGivenSchoolYear(selectedSchoolYear);
+    }
+  }
+
+  
   return (
     <div>
       <Navbar />
@@ -400,13 +488,42 @@ const AdminManageClassPage = () => {
 
             
             <div className="mt-6">
-              <button
-                onClick={openAddClassModal}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Add New Class
-              </button>
+              {/* Container for buttons */}
+              <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0 justify-start">
+                {/* Add New Class Button */}
+                <button
+                  onClick={openAddClassModal}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full sm:w-auto"
+                >
+                  Add New Class
+                </button>
+
+             {/* Import Classes Button */}
+                <button className="w-full sm:w-auto">
+                  <label className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 cursor-pointer w-full">
+                    Import Classes
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleImportClasses}
+                      ref={(input) => (fileInput = input)}  // Create a reference to the file input
+                    />
+                  </label>
+                </button>
+
+
+                {/* Delete Classes Button (visible only if classes exist) */}
+                {classes.length > 0 && (
+                  <button
+                    onClick={handleDeleteAllClasses}
+                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full sm:w-auto"
+                  >
+                    Delete Classes for the School Year
+                  </button>
+                )}
+              </div>
             </div>
+
           </div>
         </div>
 

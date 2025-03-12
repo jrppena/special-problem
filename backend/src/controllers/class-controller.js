@@ -127,11 +127,64 @@ const deleteClass = async (req, res) => {
     }
 }
 
+const createClassThroughImport = async (req, res) => {
+    try {
+      const classesData = req.body;  // Receive the class data array from frontend
+     if (!classesData || classesData.length === 0) {
+        return res.status(400).json({ message: "No class data provided" });
+      }
+  
+      // Validate and map the class data before inserting
+      const createdClasses = [];
+  
+      for (let classData of classesData) {
+        // Validation: Ensure required fields exist
+        if (!classData.subjectName || !classData.gradeLevel || !classData.sections || !classData.teachers) {
+          return res.status(400).json({ message: "Missing required class data fields" });
+        }
+  
+        // Create the new class object (you can modify this to match your schema if necessary)
+        const newClass = new Class({
+          subjectName: classData.subjectName,
+          gradeLevel: classData.gradeLevel,
+          sections: classData.sections,  // Array of section IDs
+          teachers: classData.teachers,  // Array of teacher IDs
+          schoolYear: classData.schoolYear || "2024-2025", // Default school year
+        });
+  
+        // Save the new class to the database
+        const savedClass = await newClass.save();
+        createdClasses.push(savedClass);
+      }
+  
+      // Send response with the created class data
+      res.status(201).json({
+        message: "Classes created successfully",
+        createdClasses,
+      });
+    } catch (error) {
+      console.log('Error in createClassThroughImport: ', error);
+      res.status(500).json({ message: 'Something went wrong' });
+    }
+  };
+
+  const deleteAllClassesGivenSchoolYear = async (req, res) => {
+    const { schoolYear } = req.params;
+    try {
+        await Class.deleteMany({schoolYear: schoolYear});
+        res.status(200).json({ message: 'All classes deleted successfully' });
+    } catch (error) {
+        console.log('Error in deleteAllClasses: ', error);
+        res.status(500).json({ message: 'Something went wrong' });
+    }
+  }
 
 export const classRoutes = {
     fetchClasses,
     createClass,
     editClass,
-    deleteClass
+    deleteClass,
+    createClassThroughImport,
+    deleteAllClassesGivenSchoolYear
 }
 
