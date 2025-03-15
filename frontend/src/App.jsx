@@ -6,6 +6,7 @@ import VerificationPage from "./pages/verification-page";
 import HomePage from "./pages/home-page";
 import UserProfile from "./pages/user-profile-page";
 import NotFoundPage from "./pages/not-found-page";
+import MessagePage from "./pages/message-page";
 
 import { useAuthStore } from "./store/useAuthStore";
 import { useEffect } from "react";
@@ -25,7 +26,9 @@ import StudentGradesViewPage from "./pages/student/student-grades-view-page";
 import "./index.css";
 
 const App = () => {
-    const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+    const { authUser, checkAuth, isCheckingAuth, onlineUsers } = useAuthStore();
+
+    console.log([onlineUsers])
 
     useEffect(() => {
         checkAuth();
@@ -65,7 +68,8 @@ const App = () => {
                 <Route path="/login" element={!authUser ? <LoginPage /> : <Navigate to="/" />} />
                 <Route path="/verification" element={authUser ? (authUser.accountStatus === "Verified" ? <Navigate to="/" /> : <VerificationPage />) : <Navigate to="/login" />} />
                 <Route path="/profile" element={authUser ? <UserProfile /> : <Navigate to="/login" />} />
-                
+                <Route path="/message" element={authUser ? <MessagePage /> : <Navigate to="/login" />} />
+
                 <Route path="/admin/verify" element={authUser && authUser.role === "Admin" ? <AdminVerificationPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-sections" element={authUser && authUser.role === "Admin" ? <AdminManageSectionPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-classes" element={authUser && authUser.role === "Admin" ? <AdminManageClassPage /> : <Navigate to="/" />} />

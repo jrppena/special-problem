@@ -32,7 +32,9 @@ const Navbar = () => {
 
         {/* Right Section - Icons */}
         <div className="flex items-center gap-4">
-          <button className="p-2 rounded-full bg-white shadow-sm hover:bg-gray-200 transition cursor-pointer">
+          <button 
+            onClick={() => navigate("/message")} 
+            className="p-2 rounded-full bg-white shadow-sm hover:bg-gray-200 transition cursor-pointer">
             <Mail className="w-7 h-7 text-gray-900" />
           </button>
           <button

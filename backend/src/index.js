@@ -10,10 +10,11 @@ import sectionRoutes from "./routes/section.route.js";
 import teacherRoutes from "./routes/teacher.route.js";
 import classRoutes from "./routes/class.route.js";
 import studentRoutes from "./routes/student.route.js";
+import messageRoutes from "./routes/message.route.js";
+import { app, server } from "./config/socket.js";
 
 dotenv.config();
 
-const app = express()
 
 const PORT = process.env.PORT;
 
@@ -33,6 +34,7 @@ app.use('/api/section', sectionRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/class', classRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/messages', messageRoutes);
 
 if(process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
@@ -41,7 +43,7 @@ if(process.env.NODE_ENV === "production") {
   })
 }
 
-app.listen(PORT,  () => {
+server.listen(PORT,  () => {
   connectDB();
   console.log(`Server is running on port ${PORT}`);
 })
