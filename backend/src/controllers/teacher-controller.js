@@ -234,7 +234,6 @@ const addStudentToSection =  async (req, res) => {
                   }
               }
           }
-          console.log("bulkOperations", bulkOperations);
 
           // 🟢 Execute batch update if there are changes
           if (bulkOperations.length > 0) {

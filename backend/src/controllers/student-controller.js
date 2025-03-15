@@ -22,9 +22,6 @@ const getEnrolledClasses = async (req,res) => {
             return res.status(204).json({message: "No classes found for the student for the given school year", classes: []});
         }
 
-
-        console.log(classes);
-
         return res.status(200).json(classes);
      
 
@@ -89,7 +86,6 @@ const getEnrolledClassesGrades = async(req,res) => {
             dummyGradesData.push(gradeMapData);
         }
         
-        console.log(dummyGradesData);
         res.status(200).json(dummyGradesData);
     } catch (err) {
         console.error("Error:", err);

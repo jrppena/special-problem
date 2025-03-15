@@ -7,8 +7,6 @@ export const useStudentStore = create((set) => ({
     grades: [],
 
     getEnrolledClasses: async (studentId,schoolYear) => {
-        console.log("studentId: ", studentId);
-        console.log("schoolYear: ", schoolYear);
         try {
             const response = await axiosInstance.get('/student/enrolled-classes/',
                 {
@@ -20,7 +18,6 @@ export const useStudentStore = create((set) => ({
                 }
             );
             set({classes: response.data});
-            console.log(response.data);
             return(response.data);
         } catch (error) {
             toast.error("Failed to get enrolled classes");

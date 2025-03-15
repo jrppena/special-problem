@@ -51,7 +51,6 @@ const UserProfile = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     const success = validateUpdate();
-    console.log("handle update", selectedImage)
     if(success) updateProfile({ ...formData, selectedImage, didChangeImage });
   };
 

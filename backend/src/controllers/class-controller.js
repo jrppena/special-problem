@@ -18,8 +18,6 @@ const fetchClasses = async (req, res) => {
 const createClass = async (req, res) => {
     const { subjectName, gradeLevel, schoolYear, sections, teachers } = req.body;
 
-    console.log(subjectName, gradeLevel, schoolYear, sections, teachers);
-
     try {
         // Step 1: Check if a class already exists for the same subject, grade level, and school year
         const existingClass = await Class.findOne({

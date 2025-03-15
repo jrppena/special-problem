@@ -127,7 +127,6 @@ const AdminManageClassPage = () => {
 
     // Apply teacher filter
     if (selectedTeacher !== "No Filter") {
-      console.log(filteredClasses);
       filteredClasses = filteredClasses.filter((classItem) =>
         classItem.teachers.some((teacher) =>
           `${teacher.firstName} ${teacher.lastName}`.toLowerCase().includes(selectedTeacher.toLowerCase())

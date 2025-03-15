@@ -14,8 +14,6 @@ const verifyUser = async (req, res) => {
     const { userId } = req.params;
     const { isVerified } = req.body;
 
-    console.log(isVerified);
-
     try {
         const user = await User.findById(userId);
         if (!user) {

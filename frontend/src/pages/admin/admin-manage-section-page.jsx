@@ -215,7 +215,6 @@ const AdminManageSectionPage = () => {
       );
     }
     if (selectedAdviser !== "No Filter") {
-      console.log("Here")
       filtered = filtered.filter((section) => {
         if (!section.advisers || section.advisers.length === 0) return false;
     

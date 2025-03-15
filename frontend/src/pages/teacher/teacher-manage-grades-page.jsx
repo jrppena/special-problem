@@ -120,7 +120,6 @@ const TeacherManageGradesPage = () => {
       return;
     }
 
-    console.log("Saving all grades:", editedGrades);
     try {
       const response = await updateStudentGrades(selectedClass, editedGrades, selectedSection);
       console.log(response);
@@ -267,7 +266,6 @@ const TeacherManageGradesPage = () => {
         setEditedGrades(newGrades);
         try {
           const response = await updateStudentGrades(selectedClass, newGrades, selectedSection);
-          console.log(response);
           setEditMode(false);
           setIsSaveAllEnabled(false);
         } catch (error) {
@@ -326,14 +324,12 @@ const TeacherManageGradesPage = () => {
                         options={selectedClass.sections.map((s) => `${s.gradeLevel}-${s.name}`)}
                         selected={selectedSection ? `${selectedSection.gradeLevel}-${selectedSection.name}` : ""}
                         setSelected={(formattedName) => {
-                          console.log("Formatted name selected:", formattedName);
                           const [gradeLevel, sectionName] = formattedName.split("-");
 
                           // Find the section object that matches both gradeLevel and name
                           const newSelectedSection = selectedClass.sections.find(
                             (s) => s.gradeLevel == gradeLevel && s.name === sectionName
                           );
-                          console.log("New selected section:", newSelectedSection);
 
                           // If newSelectedSection is found, set it as the selected section
                           if (newSelectedSection) {

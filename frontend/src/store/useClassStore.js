@@ -10,7 +10,6 @@ export const useClassStore = create((set) => ({
         try {
             const response = await axiosInstance.get(`/class/get/${schoolYear}`);
             set({ classes: response.data });
-            console.log('Classes: ', response.data);
         } catch (error) {
             console.log('Error in fetchClasses: ', error);
         }
