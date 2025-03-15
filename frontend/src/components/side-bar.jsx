@@ -1,36 +1,46 @@
-import React from "react";
-import { useChatStore } from "../store/useChatStore";
-import { useAuthStore } from "../store/useAuthStore";
-import { useEffect, useState } from "react";
-import SidebarSkeleton from "./skeleton/sidebar-skeleton";
-import { Users } from "lucide-react";
+import React from 'react';
+import { useChatStore } from '../store/useChatStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useEffect, useState } from 'react';
+import SidebarSkeleton from './skeleton/sidebar-skeleton';
+import { Users, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SideBar = () => {
-    const {getUsers, users, selectedUser, setSelectedUser, isUsersLoading} = useChatStore();
-
-    const {onlineUsers} = useAuthStore();
+    const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
+    const { onlineUsers } = useAuthStore();
+    const navigate = useNavigate();
 
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState('');
     
     useEffect(() => {
         getUsers();
     }, [getUsers]);
 
-    const filteredUsers = users
-    .filter((user) => !showOnlineOnly || onlineUsers.includes(user._id)) // Show online users only if enabled
-    .filter((user) => {
-    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase(); // Combine first and last names
-    return fullName.includes(searchTerm.toLowerCase());
-  });
+    const handleGoBack = () => {
+        navigate(-1);
+    };
 
-  
+    const filteredUsers = users
+        .filter((user) => !showOnlineOnly || onlineUsers.includes(user._id))
+        .filter((user) => {
+            const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+            return fullName.includes(searchTerm.toLowerCase());
+        });
+
     if(isUsersLoading) return <SidebarSkeleton/>
 
     return(
         <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
             <div className="border-b border-base-300 w-full p-5">
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleGoBack}
+                        className="hover:bg-base-200 p-1 rounded-full"
+                    >
+                        <ArrowLeft className="size-5"/>
+                    </button>
                     <Users className="size-6"/>
                     <span className="font-medium hidden lg:block">Contacts</span>
                 </div>
@@ -77,12 +87,12 @@ const SideBar = () => {
                     </button>
                 ))}
                 
-                 {filteredUsers.length === 0 && (
-                    <div className="text-center text-zinc-500 py-4">No online users</div>
+                {filteredUsers.length === 0 && (
+                   <div className="text-center text-zinc-500 py-4">No online users</div>
                 )}
             </div>
-
         </aside>
     )
 }
+
 export default SideBar;
