@@ -11,13 +11,20 @@ const SideBar = () => {
     const {onlineUsers} = useAuthStore();
 
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
     
     useEffect(() => {
         getUsers();
     }, [getUsers]);
 
-    const filteredUsers = showOnlineOnly ? users.filter((user) => onlineUsers.includes(user._id)) : users;
+    const filteredUsers = users
+    .filter((user) => !showOnlineOnly || onlineUsers.includes(user._id)) // Show online users only if enabled
+    .filter((user) => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase(); // Combine first and last names
+    return fullName.includes(searchTerm.toLowerCase());
+  });
 
+  
     if(isUsersLoading) return <SidebarSkeleton/>
 
     return(
@@ -39,6 +46,10 @@ const SideBar = () => {
                     </label>
                     <span className="text-xs text-zinc-500">({onlineUsers.length - 1} online)</span>
                 </div>
+                <label className="input mt-3 hidden lg:flex items-center gap-2">
+                    <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2.5" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></g></svg>
+                    <input type="search" className="grow" placeholder="Search" onChange={(e)=>setSearchTerm(e.target.value)}/>
+                </label>
             </div>
             <div className="overflow-y-auto w-full py-3">
                 {filteredUsers.map((user) => (
