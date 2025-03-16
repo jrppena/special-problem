@@ -12,5 +12,6 @@ router.delete('/remove/student-from-section', protectRoute, teacherRoutes.remove
 router.get('/get/assigned-classes', protectRoute, teacherRoutes.getAssignedClasses);
 router.post('/update/student-grades', protectRoute, teacherRoutes.updateStudentGrades);
 router.get('/get/class-grades', protectRoute, teacherRoutes.getClassGrades);
+router.get('/get/chart-data', protectRoute, teacherRoutes.getChartData);
 
 export default router;

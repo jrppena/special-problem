@@ -27,45 +27,32 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
 
   // Extended color palette for more subjects/students
   const colors = [
-    // Blues
     "#1E40AF", "#3B82F6", "#93C5FD", "#BFDBFE", 
-    // Greens
     "#047857", "#10B981", "#6EE7B7", "#A7F3D0",
-    // Oranges/Yellows
     "#B45309", "#F59E0B", "#FCD34D", "#FEF3C7",
-    // Reds
     "#B91C1C", "#EF4444", "#FCA5A5", "#FEE2E2",
-    // Purples
     "#6D28D9", "#8B5CF6", "#C4B5FD", "#EDE9FE",
-    // Pinks
     "#BE185D", "#EC4899", "#F9A8D4", "#FCE7F3",
-    // Teals
     "#0F766E", "#14B8A6", "#5EEAD4", "#CCFBF1",
-    // Indigos
     "#4338CA", "#6366F1", "#A5B4FC", "#E0E7FF"
   ];
 
   // Function to get color based on index with improved distribution
   const getColor = (index) => {
-    const step = 4; // Adjust this value to change color distribution
+    const step = 4;
     return colors[(index * step) % colors.length];
   };
 
-  // Determine if we should use angled or hidden labels based on data length
   const useAngledLabels = data.length > 8;
-  const hideEveryNthLabel = Math.ceil(data.length / 12); // Show at most ~12 labels
-
-  // Calculate chart margins based on data size
+  const hideEveryNthLabel = Math.ceil(data.length / 12);
+  
   const getChartMargin = () => {
-    if (useAngledLabels) {
-      return { top: 10, right: 30, left: 20, bottom: 100 };
-    }
-    return { top: 10, right: 30, left: 20, bottom: 50 };
+    return useAngledLabels
+      ? { top: 10, right: 30, left: 20, bottom: 100 }
+      : { top: 10, right: 30, left: 20, bottom: 50 };
   };
-
   const chartMargin = getChartMargin();
 
-  // X-Axis configuration based on data size
   const getXAxisConfig = () => {
     if (useAngledLabels) {
       return {
@@ -73,24 +60,16 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
         textAnchor: "end",
         height: 70,
         interval: 0,
-        tickFormatter: (value, index) => {
-          return index % hideEveryNthLabel === 0 ? value : "";
-        },
+        tickFormatter: (value, index) =>
+          index % hideEveryNthLabel === 0 ? value : "",
         dy: 10
       };
     }
-    
-    return {
-      interval: 0
-    };
+    return { interval: 0 };
   };
-
   const xAxisConfig = getXAxisConfig();
 
-  // For grade charts, we typically want to show 0-100 scale
-  // but we can optimize to show a more focused range if all grades are high
   const getYAxisDomain = () => {
-    // Find the minimum grade value
     let minGrade = 100;
     data.forEach(item => {
       dataKeys.forEach(key => {
@@ -100,16 +79,11 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
         }
       });
     });
-    
-    // Set a reasonable lower bound (round down to nearest 5)
     const lowerBound = Math.max(0, Math.floor(minGrade / 5) * 5 - 5);
-    
     return [lowerBound, 100];
   };
-
   const yAxisDomain = getYAxisDomain();
 
-  // Generate chart based on selected chart type
   const renderChart = () => {
     switch (chartType) {
       case "line":
@@ -141,7 +115,6 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
             ))}
           </LineChart>
         );
-      
       case "bar":
         return (
           <BarChart data={data} margin={chartMargin}>
@@ -168,7 +141,6 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
             ))}
           </BarChart>
         );
-      
       case "area":
         return (
           <AreaChart data={data} margin={chartMargin}>
@@ -198,7 +170,6 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
             ))}
           </AreaChart>
         );
-      
       case "radar":
         return (
           <RadarChart outerRadius={90} data={data} margin={chartMargin}>
@@ -219,7 +190,6 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
             ))}
           </RadarChart>
         );
-      
       default:
         return null;
     }

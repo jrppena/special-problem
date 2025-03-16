@@ -275,6 +275,164 @@ const addStudentToSection =  async (req, res) => {
       }
   };
 
+  // In your teacher.controller.js
+const getChartData = async (req, res) => {
+    const { classId, gradingPeriod, dataType, sectionId } = req.query;
+    try {
+      if (dataType === "singleSectionPerformance") {
+        // Ensure a sectionId is provided
+        if (!sectionId) {
+          return res.status(400).json({ message: "sectionId is required for singleSectionPerformance" });
+        }
+        // Fetch the section and its students
+        const section = await Section.findById(sectionId).populate("students");
+        if (!section) {
+          return res.status(404).json({ message: "Section not found" });
+        }
+  
+        // Initialize gradeMap for each student (default grade is 0)
+        const gradeMap = {};
+        section.students.forEach((student) => {
+          gradeMap[student._id] = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+        });
+  
+        // Build query criteria for fetching grades
+        const queryCriteria = {
+          class: classId,
+          student: { $in: section.students.map((s) => s._id) }
+        };
+        if (gradingPeriod === "all") {
+          queryCriteria.gradingPeriod = { $in: ["Q1", "Q2", "Q3", "Q4"] };
+        } else {
+          queryCriteria.gradingPeriod = gradingPeriod;
+        }
+  
+        // Query grades and update the gradeMap
+        const grades = await Grade.find(queryCriteria).populate("student", "_id");
+        grades.forEach((grade) => {
+          gradeMap[grade.student._id] = {
+            ...gradeMap[grade.student._id],
+            [grade.gradingPeriod]: parseFloat(grade.gradeValue) || 0
+          };
+        });
+  
+        let processedData = [];
+        if (gradingPeriod === "all") {
+          // Create data for all quarters; group by quarter with student names as keys
+          const quarterData = { Q1: {}, Q2: {}, Q3: {}, Q4: {} };
+          section.students.forEach((student) => {
+            const studentName = `${student.lastName}, ${student.firstName}`;
+            ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
+              quarterData[q][studentName] = gradeMap[student._id][q];
+            });
+          });
+          processedData = [
+            { name: "Q1", ...quarterData.Q1 },
+            { name: "Q2", ...quarterData.Q2 },
+            { name: "Q3", ...quarterData.Q3 },
+            { name: "Q4", ...quarterData.Q4 }
+          ];
+        } else {
+          // For a specific quarter, map each student to an object with their grade
+          processedData = section.students.map((student) => {
+            const studentName = `${student.lastName}, ${student.firstName}`;
+            return {
+              name: studentName,
+              Grade: gradeMap[student._id][gradingPeriod]
+            };
+          });
+        }
+        return res.status(200).json(processedData);
+  
+      } else if (dataType === "sectionsPerformance") {
+        // Fetch the class with its sections and their students
+        const classData = await Class.findById(classId).populate({
+          path: "sections",
+          populate: { path: "students" }
+        });
+        if (!classData) {
+          return res.status(404).json({ message: "Class not found" });
+        }
+  
+        // Gather all student IDs across all sections
+        const allStudentIds = [];
+        classData.sections.forEach((section) => {
+          section.students.forEach((student) => {
+            allStudentIds.push(student._id);
+          });
+        });
+  
+        // Build query criteria to get grades for these students
+        const queryCriteria = {
+          class: classId,
+          student: { $in: allStudentIds }
+        };
+        if (gradingPeriod === "all") {
+          queryCriteria.gradingPeriod = { $in: ["Q1", "Q2", "Q3", "Q4"] };
+        } else {
+          queryCriteria.gradingPeriod = gradingPeriod;
+        }
+  
+        // Query grades
+        const grades = await Grade.find(queryCriteria).populate("student", "_id");
+  
+        // Build a lookup for each student's grades
+        const gradeLookup = {};
+        grades.forEach((grade) => {
+          if (!gradeLookup[grade.student._id]) {
+            gradeLookup[grade.student._id] = {};
+          }
+          gradeLookup[grade.student._id][grade.gradingPeriod] = parseFloat(grade.gradeValue) || 0;
+        });
+  
+        // Process each section to calculate average grades
+        const processedData = classData.sections.map((section) => {
+          const sectionName = `${section.gradeLevel}-${section.name}`;
+          const sectionAverages = { Q1: 0, Q2: 0, Q3: 0, Q4: 0, count: 0 };
+  
+          section.students.forEach((student) => {
+            const studentGrades = gradeLookup[student._id] || {};
+            ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
+              const score = studentGrades[q] || 0;
+              if (score > 0) {
+                sectionAverages[q] += score;
+                sectionAverages.count++;
+              }
+            });
+          });
+  
+          // Calculate average per quarter (if there were any scores)
+          if (sectionAverages.count > 0) {
+            ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
+              sectionAverages[q] = parseFloat((sectionAverages[q] / sectionAverages.count).toFixed(1));
+            });
+          }
+          delete sectionAverages.count;
+  
+          if (gradingPeriod === "all") {
+            return {
+              name: sectionName,
+              ...sectionAverages
+            };
+          } else {
+            return {
+              name: sectionName,
+              Grade: sectionAverages[gradingPeriod] || 0
+            };
+          }
+        });
+  
+        return res.status(200).json(processedData);
+      } else {
+        return res.status(400).json({ message: "Invalid dataType" });
+      }
+    } catch (error) {
+      console.error("Error in getChartData:", error);
+      return res.status(500).json({ message: "Failed to generate chart data" });
+    }
+  };
+  
+
 
   
     
@@ -289,6 +447,7 @@ export const teacherRoutes = {
     removeStudentFromSection,
     getAssignedClasses,
     updateStudentGrades,
-    getClassGrades
+    getClassGrades,
+    getChartData
 };
 
