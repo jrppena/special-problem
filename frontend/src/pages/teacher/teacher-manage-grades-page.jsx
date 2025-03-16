@@ -309,13 +309,27 @@ const TeacherManageGradesPage = () => {
             <div className="bg-white p-6 rounded-lg shadow mt-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Dropdown
-                label="Class"
-                options={assignedClasses.map((c) => `${c.subjectName} - Grade ${c.gradeLevel}`)}
-                selected={selectedClass ? `${selectedClass.subjectName} - Grade ${selectedClass.gradeLevel}` : ""}
-                setSelected={(classLabel) =>
-                  setSelectedClass(assignedClasses.find((c) => `${c.subjectName} - Grade ${c.gradeLevel}` === classLabel))
-                }
-              />
+                  label="Class"
+                  options={assignedClasses.map(
+                    (c) => `${c.subjectName} - Grade ${c.gradeLevel}`
+                  )}
+                  selected={
+                    selectedClass
+                      ? `${selectedClass.subjectName} - Grade ${selectedClass.gradeLevel}`
+                      : ""
+                  }
+                  setSelected={(classLabel) => {
+                    const newSelectedClass = assignedClasses.find(
+                      (c) =>
+                        `${c.subjectName} - Grade ${c.gradeLevel}`.trim() === classLabel.trim()
+                    );
+                    setSelectedClass(newSelectedClass);
+                    // Update selectedSection to the first section of the new class (if available)
+                    setSelectedSection(newSelectedClass?.sections[0] || null);
+                  }}
+                />
+
+
 
                 {selectedClass && (
                   <>

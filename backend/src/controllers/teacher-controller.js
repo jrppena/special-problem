@@ -85,6 +85,11 @@ const addStudentToSection =  async (req, res) => {
           { $pull: { students: studentId } },
           { new: true } // Return the updated document
         ).populate('students'); // Populate the students if needed
+
+        const grade = await Grade.find({ student: studentId, schoolYear: updatedSection.schoolYear });
+        if(grade) {
+            res.status(200).json({ success: false, message: 'Cannot remove student from section. Student has grades' });
+        }
     
         res.json({ success: true, updatedSection });
       } catch (error) {

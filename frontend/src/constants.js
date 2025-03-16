@@ -37,7 +37,7 @@ const studentFunctions = [
         "description": "View the trends of your performance through data visualization",
         "icon": "/assets/student/trends.svg", 
         "button-name": "View Trends",
-        "route": "/student/trends"
+        "route": "/student/grade-trends"
     },
 ]
 
@@ -61,7 +61,7 @@ const teacherFunctions = [
         "description": "View the trends of student performance through data visualization",
         "icon": "/assets/student/trends.svg", 
         "button-name": "View Trends",
-        "route": "/teacher/trends"
+        "route": "/teacher/grade-trends"
     }
 ]
 

@@ -20,8 +20,10 @@ import AdminVerificationPage from "./pages/admin/admin-verification-page";
 
 import TeacherSectionManagementPage from "./pages/teacher/teacher-section-management-page";
 import TeacherManageGradesPage from "./pages/teacher/teacher-manage-grades-page";
+import TeacherGradeTrendsPage from "./pages/teacher/teacher-grade-trends-page";
 
 import StudentGradesViewPage from "./pages/student/student-grades-view-page";
+import StudentGradeTrendsPage from "./pages/student/student-grade-trends-page";
 
 import "./index.css";
 
@@ -74,8 +76,10 @@ const App = () => {
 
                 <Route path="/teacher/manage-sections" element={authUser && authUser.role === "Teacher" ? <TeacherSectionManagementPage /> : <Navigate to="/" />} />\
                 <Route path="/teacher/manage-grades" element={authUser && authUser.role === "Teacher" ? <TeacherManageGradesPage /> : <Navigate to="/" />} />
+                <Route path="/teacher/grade-trends" element={authUser && authUser.role === "Teacher" ? <TeacherGradeTrendsPage /> : <Navigate to="/" />} />
 
                 <Route path="/student/view-grades" element={authUser && authUser.role === "Student" ? <StudentGradesViewPage /> : <Navigate to="/" />} />
+                <Route path="/student/grade-trends" element={authUser && authUser.role === "Student" ? <StudentGradeTrendsPage /> : <Navigate to="/" />} />
 
                 {/* Wildcard route for handling undefined routes */}
                 <Route path="*" element={<NotFoundPage />} />
