@@ -10,7 +10,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 
 const StudentGradeTrendsPage = () => {
   // Store data
-  const { classes, getEnrolledClasses, getEnrolledClassesGrades, grades } = useStudentStore();
+  const { classes, getEnrolledClasses, getChartData, chartData, isChartDataLoading } = useStudentStore();
   const { authUser } = useAuthStore();
 
   // State variables
@@ -19,7 +19,6 @@ const StudentGradeTrendsPage = () => {
   const [dataType, setDataType] = useState("subjectsAcrossQuarters");
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("Q1");
-  const [chartData, setChartData] = useState([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // School year options
@@ -52,109 +51,44 @@ const StudentGradeTrendsPage = () => {
     }
   }, [classes, selectedSubject]);
 
-  // Fetch initial data
+  // Fetch initial classes data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchClasses = async () => {
       try {
         setIsDataLoaded(false);
-        // First get enrolled classes
-        const updatedClasses = await getEnrolledClasses(authUser._id, selectedSchoolYear);
-
-        // Check if updatedClasses is valid (not null, undefined, or empty)
-        if (updatedClasses && updatedClasses.length > 0) {
-          // Then get grades using the updated classes
-          await getEnrolledClassesGrades(updatedClasses, authUser._id, selectedSchoolYear);
-        }
+        await getEnrolledClasses(authUser._id, selectedSchoolYear);
         setIsDataLoaded(true);
       } catch (error) {
-        console.error("Error fetching data: ", error);
+        console.error("Error fetching classes: ", error);
         setIsDataLoaded(true);
       }
     };
 
-    fetchData();
-  }, [selectedSchoolYear, authUser._id, getEnrolledClasses, getEnrolledClassesGrades]);
+    fetchClasses();
+  }, [selectedSchoolYear, authUser._id, getEnrolledClasses]);
 
-  // Generate chart data based on filters
-  const generateChartData = () => {
-    if (!grades || grades.length === 0) return;
+  // Fetch chart data whenever filters change
+  useEffect(() => {
+    fetchChartData();
+  }, [selectedSchoolYear, dataType, selectedSubject, selectedQuarter, classes]);
 
-    let processedData = [];
-
-    switch (dataType) {
-      case "singleSubjectAcrossQuarters":
-        // Check if we have a valid subject selected
-        if (!selectedSubject) {
-          console.warn("No subject selected for single subject view");
-          return;
-        }
-        
-        // Filter for the selected subject
-        const subjectData = grades.filter(grade => grade.classId === selectedSubject);
-        
-        if (subjectData.length === 0) {
-          console.warn("No data found for selected subject");
-          return;
-        }
-        
-        // Create data for the selected subject across all quarters
-        processedData = [
-          {
-            name: "Q1",
-            [subjectData[0].className]: parseFloat(subjectData[0].grades.Q1 || 0)
-          },
-          {
-            name: "Q2",
-            [subjectData[0].className]: parseFloat(subjectData[0].grades.Q2 || 0)
-          },
-          {
-            name: "Q3",
-            [subjectData[0].className]: parseFloat(subjectData[0].grades.Q3 || 0)
-          },
-          {
-            name: "Q4",
-            [subjectData[0].className]: parseFloat(subjectData[0].grades.Q4 || 0)
-          }
-        ];
-        break;
-
-      case "subjectsAcrossQuarters":
-        // For each subject, show all quarters
-        processedData = grades.map(subject => {
-          return {
-            name: subject.className,
-            Q1: parseFloat(subject.grades.Q1 || 0),
-            Q2: parseFloat(subject.grades.Q2 || 0),
-            Q3: parseFloat(subject.grades.Q3 || 0),
-            Q4: parseFloat(subject.grades.Q4 || 0),
-            Average: parseFloat(subject.average || 0)
-          };
-        });
-        break;
-
-      case "subjectsInOneQuarter":
-        // For the selected quarter, show all subjects
-        processedData = grades.map(subject => {
-          return {
-            name: subject.className,
-            Grade: parseFloat(subject.grades[selectedQuarter] || 0)
-          };
-        });
-        break;
-
-      default:
-        processedData = [];
-    }
-
-    setChartData(processedData);
+  // Function to fetch chart data from backend
+  const fetchChartData = async () => {
+    if (!authUser._id || classes.length === 0) return;
+    
+    await getChartData(
+      authUser._id,
+      selectedSchoolYear,
+      dataType,
+      selectedSubject,
+      selectedQuarter
+    );
   };
 
-  // Generate chart data on component mount
-  useEffect(() => {
-    if (grades && grades.length > 0 && isDataLoaded) {
-      generateChartData();
-    }
-  }, [isDataLoaded, grades]);
+  // Function to handle filter changes and reload data
+  const handleFilterChange = () => {
+    fetchChartData();
+  };
 
   return (
     <div>
@@ -177,11 +111,15 @@ const StudentGradeTrendsPage = () => {
           setSelectedSubject={setSelectedSubject}
           selectedQuarter={selectedQuarter}
           setSelectedQuarter={setSelectedQuarter}
-          generateChartData={generateChartData}
+          generateChartData={handleFilterChange}
         />
 
         {isDataLoaded && classes.length === 0 ? (
           <NoDataDisplay message="You are not enrolled in any classes for the selected school year." />
+        ) : isChartDataLoading ? (
+          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
+            <p className="text-gray-500">Loading chart data...</p>
+          </div>
         ) : (
           chartData.length > 0 && (
             <div className="bg-white p-6 rounded-lg shadow mt-5">

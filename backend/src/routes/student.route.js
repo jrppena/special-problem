@@ -7,6 +7,5 @@ const router = express.Router();
 
 router.get('/enrolled-classes', protectRoute, studentRoutes.getEnrolledClasses);
 router.get('/enrolled-classes-grades', protectRoute, studentRoutes.getEnrolledClassesGrades);
-
-
+router.get('/chart-data', protectRoute, studentRoutes.generateChartData);
 export default router;

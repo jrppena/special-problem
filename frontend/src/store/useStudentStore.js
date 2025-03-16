@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 export const useStudentStore = create((set) => ({
     classes: [],
     grades: [],
+    chartData: [],
+    isChartDataLoading: false,
 
     getEnrolledClasses: async (studentId,schoolYear) => {
         try {
@@ -38,6 +40,34 @@ export const useStudentStore = create((set) => ({
             set({grades: response.data});
         }catch(error){
             toast.error("Failed to get enrolled classes grades");
+        }
+    },
+    getChartData: async (studentId, schoolYear, dataType, selectedSubject, selectedQuarter) => {
+        try {
+            set({ isChartDataLoading: true });
+            const response = await axiosInstance.get('/student/chart-data/',
+                {
+                    params: {
+                        studentId,
+                        schoolYear,
+                        dataType,
+                        selectedSubject,
+                        selectedQuarter
+                    }
+                }
+            );
+            
+            if (response.status === 200) {
+                set({ chartData: response.data.data, isChartDataLoading: false });
+                return response.data.data;
+            } else {
+                set({ chartData: [], isChartDataLoading: false });
+                return [];
+            }
+        } catch (error) {
+            toast.error("Failed to get chart data");
+            set({ chartData: [], isChartDataLoading: false });
+            return [];
         }
     }
 
