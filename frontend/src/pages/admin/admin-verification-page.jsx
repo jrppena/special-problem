@@ -9,7 +9,7 @@ import { useApprovalStore } from "../../store/useApprovalStore";
 
 const AdminVerificationPage = () => {
 
-    const [userType, setUserType] = useState("Student");
+    const [userType, setUserType] = useState("All");
     const {pendingUsers, fetchPendingUsers,verifyUser} = useApprovalStore();
     const userTypeOptions = ["Student","Teacher","All"];
 

@@ -8,17 +8,17 @@ import { Loader2 } from 'lucide-react';
 import { toast } from "react-hot-toast";
 
 
-function SignupPage() {
+function LoginPage() {
 
     const [showPassword, setShowPassword] = useState(false);
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+    
     const [formData, setFormData] = useState({
         email: "",
         password: "",
     });
 
-    const {login} = useAuthStore();
+    const {login,isLoggingIn} = useAuthStore();
     
     const validateForm = () => {
         
@@ -145,4 +145,4 @@ function SignupPage() {
   );
 }
 
-export default SignupPage;
+export default LoginPage;
