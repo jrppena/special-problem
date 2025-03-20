@@ -385,29 +385,28 @@ const getChartData = async (req, res) => {
           gradeLookup[grade.student._id][grade.gradingPeriod] = parseFloat(grade.gradeValue) || 0;
         });
   
-        // Process each section to calculate average grades
+       // Process each section to calculate average grades
         const processedData = classData.sections.map((section) => {
           const sectionName = `${section.gradeLevel}-${section.name}`;
-          const sectionAverages = { Q1: 0, Q2: 0, Q3: 0, Q4: 0, count: 0 };
-  
+          const sectionAverages = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+          const counts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }; // Track count for each quarter separately
+          
           section.students.forEach((student) => {
             const studentGrades = gradeLookup[student._id] || {};
             ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
               const score = studentGrades[q] || 0;
               if (score > 0) {
                 sectionAverages[q] += score;
-                sectionAverages.count++;
+                counts[q]++; // Increment count for this specific quarter
               }
             });
           });
-  
+          
           // Calculate average per quarter (if there were any scores)
-          if (sectionAverages.count > 0) {
-            ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
-              sectionAverages[q] = parseFloat((sectionAverages[q] / sectionAverages.count).toFixed(1));
-            });
-          }
-          delete sectionAverages.count;
+          ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
+            sectionAverages[q] = counts[q] > 0 ? 
+              parseFloat((sectionAverages[q] / counts[q]).toFixed(1)) : 0;
+          });
   
           if (gradingPeriod === "all") {
             return {

@@ -67,7 +67,7 @@ const StudentGradesViewPage = () => {
   const [enrolledClasses, setEnrolledClasses] = useState(dummyEnrolledClasses);
   const [gradesData, setGradesData] = useState(dummyGradesData);
 
-  const { classes, getEnrolledClasses, getEnrolledClassesGrades, grades } = useStudentStore();
+  const { classes, getEnrolledClasses, getEnrolledClassesGrades, grades, isGettingGrades } = useStudentStore();
   const { authUser } = useAuthStore();
 
   useEffect(() => {
@@ -167,6 +167,10 @@ const StudentGradesViewPage = () => {
         {classes.length === 0 ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You are not enrolled in any classes for the selected school year.
+          </div>
+        ) : isGettingGrades ? (
+          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
+            <p className="text-gray-500">Loading grades...</p>
           </div>
         ) : (
           <div className="bg-white p-6 rounded-lg shadow mt-5">

@@ -7,6 +7,7 @@ export const useStudentStore = create((set) => ({
     grades: [],
     chartData: [],
     isChartDataLoading: false,
+    isGettingGrades: false,
 
     getEnrolledClasses: async (studentId,schoolYear) => {
         try {
@@ -27,6 +28,7 @@ export const useStudentStore = create((set) => ({
     },
 
     getEnrolledClassesGrades: async (classes,student,schoolYear) => {
+        set({isGettingGrades: true});
         try{
             const response = await axiosInstance.get('/student/enrolled-classes-grades/',
                 {
@@ -40,6 +42,8 @@ export const useStudentStore = create((set) => ({
             set({grades: response.data});
         }catch(error){
             toast.error("Failed to get enrolled classes grades");
+        }finally{
+            set({isGettingGrades: false});
         }
     },
     getChartData: async (studentId, schoolYear, dataType, selectedSubject, selectedQuarter) => {

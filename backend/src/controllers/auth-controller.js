@@ -62,21 +62,14 @@ const login = async (req, res) => {
         if(!user){
             return res.status(40).json({message: "Invalid Credentials"});
         }
-         
-        const isPasswordCorrect = async (password, userPassword) => {
-            // Check if userPassword looks like a hashed password (bcrypt hashes are usually 60 characters long)
-            if (userPassword && userPassword.length === 60) {
-              // If it seems to be hashed, compare using bcrypt
-              return await bcrypt.compare(password, userPassword);
-            } else {
-              // If it isn't hashed, check if the plaintext password matches
-              return password === userPassword;
-            }
-        };
         
-        if(!isPasswordCorrect){
-            return res.status(400).json({message: "Invalid Credentials"});
-        }
+        const isPasswordCorrect = user.password.startsWith('$2')
+            ? await bcrypt.compare(password, user.password)
+            : password === user.password;
+
+            if (!isPasswordCorrect) {
+            return res.status(400).json({ message: "Invalid credentials" });
+            }
 
         generateToken(user._id, res);
         return res.status(200).json({_id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role});
@@ -149,8 +142,6 @@ const updateProfile = async (req, res) => {
         return res.status(500).json({ message: "Something went wrong" });
     }
 };
-
-export default updateProfile;
 
 const checkAuth = (req, res) => {
     try{
