@@ -4,6 +4,8 @@ import Navbar from "../../components/navigation-bar";
 import ChartFilters from "../../components/student/chart-filters";
 import GradeChart from "../../components/student/grade-chart";
 import NoDataDisplay from "../../components/student/no-data-display";
+import StudentChartAnalysis from "../../components/student/chart-analysis";
+
 
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -122,15 +124,22 @@ const StudentGradeTrendsPage = () => {
           </div>
         ) : (
           chartData.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow mt-5">
-              <h3 className="text-xl font-semibold mb-4">Grade Trends Visualization</h3>
-              <div className="h-96">
-                <GradeChart 
-                  chartType={chartType} 
-                  data={chartData} 
-                  dataType={dataType}
-                />
+            <div className="space-y-5">
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h3 className="text-xl font-semibold mb-4">Grade Trends Visualization</h3>
+                <div className="h-96">
+                  <GradeChart 
+                    chartType={chartType} 
+                    data={chartData} 
+                    dataType={dataType}
+                  />
+                </div>
               </div>
+              <StudentChartAnalysis 
+                chartData={chartData}
+                dataType={dataType}
+                selectedQuarter={selectedQuarter}
+              />
             </div>
           )
         )}

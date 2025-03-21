@@ -3,6 +3,7 @@ import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import ChartFilters from "../../components/teacher/chart-filters";
 import GradeChart from "../../components/teacher/grade-chart";
+import TeacherChartAnalysis from "../../components/teacher/chart-analysis";
 import NoDataDisplay from "../../components/student/no-data-display";
 
 import { useTeacherStore } from "../../store/useTeacherStore";
@@ -24,6 +25,7 @@ const TeacherGradeTrendsPage = () => {
   const [chartData, setChartData] = useState([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isChartGenerating, setIsChartGenerating] = useState(false);
+  const [showChartGuide, setShowChartGuide] = useState(false); // New state to toggle chart guide
 
   // Chart type options
   const chartTypes = [
@@ -80,6 +82,13 @@ const TeacherGradeTrendsPage = () => {
     }
   }, [assignedClasses]);
 
+  // Show chart guide when chart type changes
+  useEffect(() => {
+    if (chartData.length > 0) {
+      setShowChartGuide(true);
+    }
+  }, [chartType, chartData]);
+
   // Generate chart data using the backend
   const generateChartData = async () => {
     setChartData([]);
@@ -129,6 +138,33 @@ const TeacherGradeTrendsPage = () => {
     }
   };
 
+  // Toggle chart guide
+  const toggleChartGuide = () => {
+    setShowChartGuide(!showChartGuide);
+  };
+
+  // Check if radar chart is compatible with the data
+  const isRadarCompatible = () => {
+    if (!chartData || chartData.length === 0) return true;
+    
+    if (chartType === "radar" && dataType === "sectionsPerformance") {
+      // Get available quarters in the data
+      const quarters = Object.keys(chartData[0]).filter(key => 
+        key !== "name" && key.startsWith("Q")
+      );
+      if (quarters.length <= 1) {
+        return false;
+      }
+    }else if(chartType === "radar" && dataType === "singleSectionPerformance"){
+      // Simply check if we have more than one quarter in the data array
+      if (chartData[0].name != "Q1" && chartData[1].name != "Q2" && chartData[2].name != "Q3" && chartData[3].name != "Q4")  {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   return (
     <div>
       <Navbar />
@@ -164,16 +200,24 @@ const TeacherGradeTrendsPage = () => {
           <NoDataDisplay message="You have no assigned classes for the selected school year." />
         ) : (
           chartData.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow mt-5">
-              <h3 className="text-xl font-semibold mb-4">Grade Trends Visualization</h3>
-              <div className="h-96">
+            <>
+              <div className="h-96 ">
                 <GradeChart 
                   chartType={chartType} 
                   data={chartData} 
                   dataType={dataType}
                 />
               </div>
-            </div>
+              
+              {/* Only show chart analysis if the radar chart is compatible or a different chart type is selected */}
+              {isRadarCompatible() && (
+                <TeacherChartAnalysis 
+                  chartData={chartData}
+                  dataType={dataType}
+                  selectedQuarter={selectedQuarter}
+                />
+              )}
+            </>
           )
         )}
       </div>

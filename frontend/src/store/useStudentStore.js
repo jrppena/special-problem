@@ -8,6 +8,7 @@ export const useStudentStore = create((set) => ({
     chartData: [],
     isChartDataLoading: false,
     isGettingGrades: false,
+    chartAnalysis: [],
 
     getEnrolledClasses: async (studentId,schoolYear) => {
         try {
@@ -74,6 +75,7 @@ export const useStudentStore = create((set) => ({
             return [];
         }
     }
+
 
 
 }));

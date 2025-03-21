@@ -420,7 +420,6 @@ const getChartData = async (req, res) => {
             };
           }
         });
-  
         return res.status(200).json(processedData);
       } else {
         return res.status(400).json({ message: "Invalid dataType" });
