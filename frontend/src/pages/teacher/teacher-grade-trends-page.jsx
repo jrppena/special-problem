@@ -4,6 +4,8 @@ import Navbar from "../../components/navigation-bar";
 import ChartFilters from "../../components/teacher/chart-filters";
 import GradeChart from "../../components/teacher/grade-chart";
 import TeacherChartAnalysis from "../../components/teacher/chart-analysis";
+import ChartToolTip from "../../components/teacher/chart-tool-tip";
+
 import NoDataDisplay from "../../components/student/no-data-display";
 
 import { useTeacherStore } from "../../store/useTeacherStore";
@@ -15,25 +17,24 @@ const TeacherGradeTrendsPage = () => {
   const { assignedClasses, getAssignedClasses, getChartData } = useTeacherStore();
   const { authUser } = useAuthStore();
 
-  // State variables
+  // State variables for filters
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
-  const [chartType, setChartType] = useState("line");
+  const [chartType, setChartType] = useState("line"); // Default chart type
   const [dataType, setDataType] = useState("singleSectionPerformance");
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("all");
+  
+  // State variables for display data - these will only update after Generate Chart is clicked
+  const [displayChartType, setDisplayChartType] = useState("line");
+  const [displayDataType, setDisplayDataType] = useState("singleSectionPerformance");
+  const [displaySubject, setDisplaySubject] = useState(null);
+  const [displaySection, setDisplaySection] = useState(null);
+  const [displayQuarter, setDisplayQuarter] = useState("all");
+  
   const [chartData, setChartData] = useState([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isChartGenerating, setIsChartGenerating] = useState(false);
-  const [showChartGuide, setShowChartGuide] = useState(false); // New state to toggle chart guide
-
-  // Chart type options
-  const chartTypes = [
-    { value: "line", label: "Line Chart" },
-    { value: "bar", label: "Bar Chart" },
-    { value: "area", label: "Area Chart" },
-    { value: "radar", label: "Radar Chart" },
-  ];
 
   // Data type options
   const dataTypeOptions = [
@@ -82,12 +83,26 @@ const TeacherGradeTrendsPage = () => {
     }
   }, [assignedClasses]);
 
-  // Show chart guide when chart type changes
+  // Auto-select best chart type based on data selection
+  // This only affects the filter state, not what's displayed
   useEffect(() => {
-    if (chartData.length > 0) {
-      setShowChartGuide(true);
+    if (dataType && selectedQuarter) {
+      // Choose the best chart type based on data type and quarter selection
+      if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
+        // Line chart is best for showing performance trends over time for a single section
+        setChartType("line");
+      } else if (dataType === "sectionsPerformance" && selectedQuarter === "all") {
+        // Area chart is good for comparing multiple sections across all quarters
+        setChartType("area");
+      } else if (dataType === "sectionsPerformance" && selectedQuarter !== "all") {
+        // Bar chart is best for comparing sections in a specific quarter
+        setChartType("bar");
+      } else if (dataType === "singleSectionPerformance" && selectedQuarter !== "all") {
+        // For single section in a specific quarter, bar chart works well
+        setChartType("bar");
+      }
     }
-  }, [chartType, chartData]);
+  }, [dataType, selectedQuarter]);
 
   // Generate chart data using the backend
   const generateChartData = async () => {
@@ -130,39 +145,20 @@ const TeacherGradeTrendsPage = () => {
       }
   
       setChartData(response);
+      
+      // Update display states only after successful data fetch
+      setDisplayChartType(chartType);
+      setDisplayDataType(dataType);
+      setDisplaySubject(selectedSubject);
+      setDisplaySection(selectedSection);
+      setDisplayQuarter(selectedQuarter);
+      
     } catch (error) {
       console.error("Error generating chart data: ", error);
       setChartData([]);
     } finally {
       setIsChartGenerating(false);
     }
-  };
-
-  // Toggle chart guide
-  const toggleChartGuide = () => {
-    setShowChartGuide(!showChartGuide);
-  };
-
-  // Check if radar chart is compatible with the data
-  const isRadarCompatible = () => {
-    if (!chartData || chartData.length === 0) return true;
-    
-    if (chartType === "radar" && dataType === "sectionsPerformance") {
-      // Get available quarters in the data
-      const quarters = Object.keys(chartData[0]).filter(key => 
-        key !== "name" && key.startsWith("Q")
-      );
-      if (quarters.length <= 1) {
-        return false;
-      }
-    }else if(chartType === "radar" && dataType === "singleSectionPerformance"){
-      // Simply check if we have more than one quarter in the data array
-      if (chartData[0].name != "Q1" && chartData[1].name != "Q2" && chartData[2].name != "Q3" && chartData[3].name != "Q4")  {
-        return false;
-      }
-    }
-
-    return true;
   };
 
   return (
@@ -175,8 +171,6 @@ const TeacherGradeTrendsPage = () => {
           schoolYears={schoolYears}
           selectedSchoolYear={selectedSchoolYear}
           setSelectedSchoolYear={setSelectedSchoolYear}
-          chartTypes={chartTypes}
-          chartType={chartType}
           setChartType={setChartType}
           dataTypeOptions={dataTypeOptions}
           dataType={dataType}
@@ -201,23 +195,39 @@ const TeacherGradeTrendsPage = () => {
         ) : (
           chartData.length > 0 && (
             <>
-              <div className="h-96 ">
-                <GradeChart 
-                  chartType={chartType} 
-                  data={chartData} 
-                  dataType={dataType}
-                />
+            <div className="bg-white p-6 rounded-lg shadow mt-5">
+              <div className="mb-4 flex justify-between items-center">
+                <h3 className="text-xl font-semibold">
+                  {displaySubject?.subjectName} 
+                  {displayDataType === "singleSectionPerformance" && displaySection && 
+                    ` - ${displaySection.gradeLevel}-${displaySection.name}`
+                  }
+                  {displayQuarter !== "all" && ` (${quarterOptions.find(q => q.value === displayQuarter)?.label})`}
+                </h3>
               </div>
               
-              {/* Only show chart analysis if the radar chart is compatible or a different chart type is selected */}
-              {isRadarCompatible() && (
-                <TeacherChartAnalysis 
-                  chartData={chartData}
-                  dataType={dataType}
-                  selectedQuarter={selectedQuarter}
+              <ChartToolTip 
+                chartType={displayChartType}
+                dataType={displayDataType}
+                selectedQuarter={displayQuarter}
+              />
+              
+              <div className="h-96">
+                <GradeChart 
+                  chartType={displayChartType} 
+                  data={chartData} 
+                  dataType={displayDataType}
                 />
-              )}
-            </>
+              </div>
+            </div>
+            
+            <TeacherChartAnalysis 
+              chartData={chartData}
+              dataType={displayDataType}
+              selectedQuarter={displayQuarter}
+              chartType={displayChartType}
+            />
+          </>
           )
         )}
       </div>

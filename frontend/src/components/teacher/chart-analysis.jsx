@@ -1,346 +1,422 @@
-import React, { useMemo } from 'react';
-import { ArrowUpCircle, ArrowDownCircle, MinusCircle } from 'lucide-react';
+import React from "react";
 
-const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
-  const analysis = useMemo(() => {
-    if (!chartData || chartData.length === 0) return null;
+const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType }) => {
+  if (!chartData || chartData.length === 0) return null;
 
-    // Extract data keys (excluding 'name' which is used for x-axis)
-    const dataKeys = Object.keys(chartData[0]).filter(key => key !== 'name');
-    
-    // Calculate overall stats
-    const stats = {
-      averages: {},
-      highest: { value: 0, category: '', dataKey: '' },
-      lowest: { value: 100, category: '', dataKey: '' },
-      trends: [],
-      trendSummary: '',
-      performanceSummary: '',
-      missingDataSummary: '',
-      assessmentCoverage: 0
-    };
-
-    // Calculate averages for each data key, ignoring zeros (missing data)
-    dataKeys.forEach(key => {
-      const allValues = chartData.map(item => parseFloat(item[key]));
-      const values = allValues.filter(val => !isNaN(val) && val > 0); // Exclude zeros as they mean no data
+  // Extract insights from the data
+  const generateInsights = () => {
+    // For single section performance across all quarters
+    if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
+      const subjects = Object.keys(chartData[0]).filter(key => key !== "name");
       
-      // Check if there are valid values
-      if (values.length > 0) {
-        const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
-        stats.averages[key] = avg.toFixed(2);
+      // Calculate trend for each subject
+      const trends = subjects.map(subject => {
+        const values = chartData.map(item => parseFloat(item[subject]) || 0);
+        const validValues = values.filter(val => val > 0);
         
-        // Find highest and lowest grades (only from valid data)
-        const maxValue = Math.max(...values);
-        const maxItemIndex = allValues.findIndex(val => val === maxValue);
+        if (validValues.length < 2) return { subject, trend: "insufficient" };
         
-        const minValue = Math.min(...values);
-        const minItemIndex = allValues.findIndex(val => val === minValue);
+        const firstVal = validValues[0];
+        const lastVal = validValues[validValues.length - 1];
+        const diff = lastVal - firstVal;
+        const percentChange = (diff / firstVal) * 100;
         
-        if (maxValue > stats.highest.value) {
-          stats.highest = {
-            value: maxValue,
-            category: chartData[maxItemIndex]?.name || '',
-            dataKey: key
-          };
-        }
+        let trend;
+        if (percentChange > 5) trend = "improving";
+        else if (percentChange < -5) trend = "declining";
+        else trend = "stable";
         
-        if (minValue < stats.lowest.value && minValue > 0) { // Ensure we don't count zeros as lowest
-          stats.lowest = {
-            value: minValue,
-            category: chartData[minItemIndex]?.name || '',
-            dataKey: key
-          };
-        }
-        
-        // Enhanced trend analysis (only with non-zero values)
-        if (values.length > 1) {
-          // Find all non-zero values and their corresponding indices
-          const nonZeroValues = [];
-          const nonZeroIndices = [];
-          
-          allValues.forEach((val, idx) => {
-            if (val > 0) {
-              nonZeroValues.push(val);
-              nonZeroIndices.push(idx);
-            }
-          });
-          
-          if (nonZeroIndices.length >= 2) {
-            const firstNonZeroIndex = nonZeroIndices[0];
-            const lastNonZeroIndex = nonZeroIndices[nonZeroIndices.length - 1];
-            
-            const firstValue = allValues[firstNonZeroIndex];
-            const lastValue = allValues[lastNonZeroIndex];
-            const difference = lastValue - firstValue;
-            const percentChange = ((lastValue - firstValue) / firstValue * 100).toFixed(1);
-            
-            // Calculate trend slope
-            let trendDirection = 'stable';
-            if (difference > 5) {
-              trendDirection = 'strong-increase';
-            } else if (difference > 2) {
-              trendDirection = 'slight-increase';
-            } else if (difference < -5) {
-              trendDirection = 'strong-decrease';
-            } else if (difference < -2) {
-              trendDirection = 'slight-decrease';
-            }
-            
-            // Calculate volatility (standard deviation of changes between consecutive points)
-            let volatility = 0;
-            if (nonZeroValues.length > 2) {
-              const changes = [];
-              for (let i = 1; i < nonZeroValues.length; i++) {
-                changes.push(nonZeroValues[i] - nonZeroValues[i-1]);
-              }
-              
-              const meanChange = changes.reduce((sum, val) => sum + val, 0) / changes.length;
-              const squaredDiffs = changes.map(change => Math.pow(change - meanChange, 2));
-              volatility = Math.sqrt(squaredDiffs.reduce((sum, val) => sum + val, 0) / changes.length);
-            }
-            
-            let trend = '';
-            if (trendDirection === 'strong-increase') {
-              trend = 'significant improvement';
-            } else if (trendDirection === 'slight-increase') {
-              trend = 'slight improvement';
-            } else if (trendDirection === 'strong-decrease') {
-              trend = 'significant decline';
-            } else if (trendDirection === 'slight-decrease') {
-              trend = 'slight decline';
-            } else {
-              trend = 'stable performance';
-            }
-            
-            // Interpret consistency
-            let consistency = 'consistent';
-            if (volatility > 5) {
-              consistency = 'highly variable';
-            } else if (volatility > 2) {
-              consistency = 'somewhat variable';
-            }
-            
-            stats.trends.push({
-              dataKey: key,
-              trend,
-              trendDirection,
-              difference: difference.toFixed(2),
-              percentChange,
-              firstCategory: chartData[firstNonZeroIndex]?.name || '',
-              lastCategory: chartData[lastNonZeroIndex]?.name || '',
-              firstValue: firstValue.toFixed(1),
-              lastValue: lastValue.toFixed(1),
-              dataPoints: nonZeroValues.length,
-              volatility: volatility.toFixed(1),
-              consistency
-            });
-          }
-        }
-      } else {
-        // If all values are zero or NaN, mark as no data
-        stats.averages[key] = 'No data';
-      }
-    });
-    
-    // Calculate data coverage - how many cells have actual grades vs total cells
-    const totalCells = dataKeys.length * chartData.length;
-    const filledCells = dataKeys.reduce((count, key) => {
-      return count + chartData.filter(item => parseFloat(item[key]) > 0).length;
-    }, 0);
-    
-    stats.assessmentCoverage = totalCells > 0 ? Math.round((filledCells / totalCells) * 100) : 0;
-    
-    // Generate missing data summary
-    if (stats.assessmentCoverage < 100) {
-      stats.missingDataSummary = `${100 - stats.assessmentCoverage}% of grade data is not yet available.`;
-      
-      // Identify which categories are missing the most data
-      const categoriesMissingData = chartData.map(item => {
-        const missingCount = dataKeys.filter(key => parseFloat(item[key]) === 0).length;
-        return {
-          name: item.name,
-          missingCount,
-          missingPercentage: Math.round((missingCount / dataKeys.length) * 100)
+        return { 
+          subject, 
+          trend, 
+          percentChange, 
+          highestQuarter: chartData[values.indexOf(Math.max(...values))].name,
+          lowestQuarter: chartData[values.indexOf(Math.min(...validValues))].name
         };
-      }).filter(cat => cat.missingCount > 0)
-        .sort((a, b) => b.missingPercentage - a.missingPercentage);
+      });
       
-      if (categoriesMissingData.length > 0) {
-        const topMissing = categoriesMissingData.slice(0, 3);
-        if (topMissing.length > 0) {
-          stats.missingDataSummary += ` Incomplete data for: ${topMissing.map(
-            cat => `${cat.name} (${cat.missingPercentage}%)`
-          ).join(', ')}.`;
+      return {
+        type: "quarterTrends",
+        trends
+      };
+    }
+    
+    // For all sections in a single quarter
+    else if (dataType === "sectionsPerformance" && selectedQuarter !== "all") {
+      // Find highest and lowest performing sections
+      const sections = chartData.map(item => ({
+        name: item.name,
+        grade: parseFloat(item.Grade) || 0
+      }));
+      
+      // Filter out sections with invalid grades (undefined, null, 0)
+      const validSections = sections.filter(section => section.grade > 0);
+      
+      // If no valid sections, return a special case
+      if (validSections.length === 0) {
+        return {
+          type: "sectionComparison",
+          quarter: selectedQuarter,
+          noValidData: true,
+          message: "No valid grade data available for this quarter."
+        };
+      }
+      
+      // Sort sections by grade (highest to lowest)
+      validSections.sort((a, b) => b.grade - a.grade);
+      
+      const highestSection = validSections[0];
+      const lowestSection = validSections[validSections.length - 1];
+      const averageGrade = validSections.reduce((sum, section) => sum + section.grade, 0) / validSections.length;
+      
+      return {
+        type: "sectionComparison",
+        quarter: selectedQuarter,
+        highestSection,
+        lowestSection,
+        averageGrade: averageGrade.toFixed(2),
+        sectionCount: validSections.length,
+        totalSections: sections.length,
+        invalidSections: sections.length - validSections.length
+      };
+    }
+    
+    // For all sections across all quarters
+    else if (dataType === "sectionsPerformance" && selectedQuarter === "all") {
+      // Get all section names
+      const sectionNames = chartData.map(item => item.name);
+
+      // Get quarter columns (excluding name and Average)
+      const quarters = Object.keys(chartData[0]).filter(key => 
+        key !== "name" && key !== "Average" && key.startsWith("Q")
+      );
+
+      // Find the most improved and most declined sections
+      const sectionTrends = sectionNames.map(section => {
+        const sectionData = chartData.find(item => item.name === section);
+        
+        // Map quarter values for the section
+        const quarterValues = quarters.map(q => parseFloat(sectionData[q]) || 0);
+        
+        // Filter out invalid quarter values
+        const validValues = quarterValues.filter(val => val > 0);
+        
+        // Ensure we have at least two valid values to calculate a trend
+        if (validValues.length < 2) {
+          return { section, trend: 0, hasValidTrend: false };
         }
-      }
-    }
-    
-    // Generate trend summary
-    if (stats.trends.length > 0) {
-      const improvingTrends = stats.trends.filter(t => t.trend.includes('improvement')).length;
-      const decliningTrends = stats.trends.filter(t => t.trend.includes('decline')).length;
-      const stableTrends = stats.trends.filter(t => t.trend.includes('stable')).length;
-      
-      if (improvingTrends > decliningTrends && improvingTrends > stableTrends) {
-        stats.trendSummary = `Overall positive trajectory with ${improvingTrends} of ${stats.trends.length} metrics showing improvement.`;
-      } else if (decliningTrends > improvingTrends && decliningTrends > stableTrends) {
-        stats.trendSummary = `Concerning trajectory with ${decliningTrends} of ${stats.trends.length} metrics showing decline.`;
-      } else if (stableTrends > improvingTrends && stableTrends > decliningTrends) {
-        stats.trendSummary = `Generally stable performance with ${stableTrends} of ${stats.trends.length} metrics showing consistent results.`;
-      } else {
-        stats.trendSummary = `Mixed performance trends with ${improvingTrends} improving, ${decliningTrends} declining, and ${stableTrends} stable metrics.`;
-      }
-    }
-    
-    // Generate performance summary (only if we have enough data)
-    const validAverages = Object.values(stats.averages).filter(val => val !== 'No data').map(val => parseFloat(val));
-    
-    if (validAverages.length > 0) {
-      const overallAvg = validAverages.reduce((sum, val) => sum + val, 0) / validAverages.length;
-      
-      if (overallAvg >= 90) {
-        stats.performanceSummary = 'Excellent performance overall. Most students are achieving at a high level.';
-      } else if (overallAvg >= 80) {
-        stats.performanceSummary = 'Good performance overall. Most students are grasping the material well.';
-      } else if (overallAvg >= 70) {
-        stats.performanceSummary = 'Satisfactory performance overall, but there is room for improvement.';
-      } else {
-        stats.performanceSummary = 'Performance needs improvement. Consider intervention strategies.';
-      }
-    } else {
-      stats.performanceSummary = 'Not enough data to provide a meaningful performance summary.';
-    }
-    
-    return stats;
-  }, [chartData]);
 
-  if (!analysis) return null;
+        // Calculate the trend as the difference between the first and last valid value
+        const firstVal = validValues[0];
+        const lastVal = validValues[validValues.length - 1];
+        const trend = lastVal - firstVal;
+        
+        // Calculate average across quarters (since we might not have an Average field)
+        const avgValue = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
+        
+        return {
+          section,
+          trend,
+          hasValidTrend: true,
+          average: avgValue // Calculate average from quarter values instead of using Average field
+        };
+      });
 
-  // Helper function to render trend icons
-  const renderTrendIcon = (trendDirection) => {
-    switch(trendDirection) {
-      case 'strong-increase':
-        return <ArrowUpCircle className="text-green-600" size={20} />;
-      case 'slight-increase':
-        return <ArrowUpCircle className="text-green-400" size={20} />;
-      case 'strong-decrease':
-        return <ArrowDownCircle className="text-red-600" size={20} />;
-      case 'slight-decrease':
-        return <ArrowDownCircle className="text-red-400" size={20} />;
-      default:
-        return <MinusCircle className="text-gray-400" size={20} />;
+      // Filter and sort sections with valid trends
+      const sectionsWithValidTrends = sectionTrends.filter(s => s.hasValidTrend);
+      sectionsWithValidTrends.sort((a, b) => b.trend - a.trend);
+
+      // Get sections with valid averages (now we calculated these ourselves)
+      const sectionsWithValidAverage = sectionTrends.filter(s => s.average > 0);
+      sectionsWithValidAverage.sort((a, b) => b.average - a.average);
+
+      // Check if we have enough valid data - use AND instead of OR to be more lenient
+      if (sectionsWithValidTrends.length === 0 && sectionsWithValidAverage.length === 0) {
+        return {
+          type: "overallTrends",
+          noValidData: true,
+          message: "Insufficient valid grade data to analyze trends."
+        };
+      }
+
+      // Find overall trend for all sections
+      const allGrades = [];
+      quarters.forEach(quarter => {
+        chartData.forEach(section => {
+          const grade = parseFloat(section[quarter]) || 0;
+          if (grade > 0) allGrades.push(grade);
+        });
+      });
+
+      const overallAverage = allGrades.length > 0 
+        ? allGrades.reduce((sum, grade) => sum + grade, 0) / allGrades.length 
+        : 0;
+
+      return {
+        type: "overallTrends",
+        mostImproved: sectionsWithValidTrends.length > 0 ? sectionsWithValidTrends[0] : null,
+        mostDeclined: sectionsWithValidTrends.length > 0 ? sectionsWithValidTrends[sectionsWithValidTrends.length - 1] : null,
+        highestAverage: sectionsWithValidAverage.length > 0 ? sectionsWithValidAverage[0] : null,
+        overallAverage: allGrades.length > 0 ? overallAverage.toFixed(2) : "N/A",
+        validDataPoints: allGrades.length,
+        missingDataPoints: (quarters.length * chartData.length) - allGrades.length
+      };
+    }
+    
+    // Single section in a specific quarter (less data to analyze)
+    else {
+      // Extract the subjects (excluding "name")
+      const subjects = Object.keys(chartData[0]).filter(key => key !== "name");
+
+      // Create an array of all grades for each subject across all students
+      const grades = chartData.map(student => {
+        return subjects.map(subject => ({
+          subject,
+          grade: parseFloat(student[subject]) || 0
+        }));
+      }).flat(); // Flatten the array to make it a single array of grade objects
+
+      // Filter out subjects with invalid grades
+      const validGrades = grades.filter(item => item.grade > 0);
+
+      // If no valid grades, return a special case
+      if (validGrades.length === 0) {
+        return {
+          type: "quarterSnapshot",
+          quarter: selectedQuarter,
+          noValidData: true,
+          message: "No valid grade data available for this quarter snapshot."
+        };
+      }
+
+      // Sort grades from highest to lowest
+      validGrades.sort((a, b) => b.grade - a.grade);
+
+      // Calculate and return the quarter snapshot data
+      return {
+        type: "quarterSnapshot",
+        quarter: selectedQuarter,
+        highestSubject: validGrades[0],
+        lowestSubject: validGrades[validGrades.length - 1],
+        averageGrade: (validGrades.reduce((sum, item) => sum + item.grade, 0) / validGrades.length).toFixed(2),
+        validSubjects: validGrades.length,
+        totalSubjects: grades.length
+      };
     }
   };
-
-  // Helper function to get trend color
-  const getTrendColor = (trendDirection) => {
-    switch(trendDirection) {
-      case 'strong-increase':
-      case 'slight-increase':
-        return 'text-green-600';
-      case 'strong-decrease':
-      case 'slight-decrease':
-        return 'text-red-600';
+  
+  const insights = generateInsights();
+  
+  // Render insights based on the type
+  const renderInsights = () => {
+    if (!insights) return null;
+    
+    // Handle cases with no valid data
+    if (insights.noValidData) {
+      return (
+        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <h5 className="text-yellow-800 font-medium">No Valid Data Available</h5>
+          <p className="text-yellow-700">{insights.message}</p>
+          <p className="text-yellow-700 mt-2">Please check that your data contains valid numerical grades greater than zero.</p>
+        </div>
+      );
+    }
+    
+    switch (insights.type) {
+      case "quarterTrends":
+        return (
+          <div>
+            <h4 className="text-lg font-medium mb-2">Performance Trends</h4>
+            <div className="space-y-4">
+              {insights.trends.map(trend => (
+                <div key={trend.subject} className="border-l-4 px-4 py-2" 
+                     style={{ 
+                       borderColor: trend.trend === "improving" ? "#10B981" : 
+                                   trend.trend === "declining" ? "#EF4444" : "#F59E0B" 
+                     }}>
+                  <h5 className="font-medium mb-1">{trend.subject}</h5>
+                  {trend.trend === "insufficient" ? (
+                    <p>Not enough data to determine a trend.</p>
+                  ) : (
+                    <>
+                      <p>
+                        <span className={`font-medium ${
+                          trend.trend === "improving" ? "text-green-600" : 
+                          trend.trend === "declining" ? "text-red-600" : "text-yellow-600"
+                        }`}>
+                          {trend.trend === "improving" ? "Improving" : 
+                           trend.trend === "declining" ? "Declining" : "Stable"}
+                        </span>{" "}
+                        {trend.trend !== "stable" && `by ${Math.abs(trend.percentChange).toFixed(1)}%`}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Best performance in {trend.highestQuarter} • 
+                        Lowest in {trend.lowestQuarter}
+                      </p>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+        
+      case "sectionComparison":
+        return (
+          <div>
+            <h4 className="text-lg font-medium mb-2">Section Comparison for {insights.quarter}</h4>
+            {insights.invalidSections > 0 && (
+              <p className="text-yellow-600 mb-3">
+                Note: {insights.invalidSections} out of {insights.totalSections} sections have missing or invalid grade data.
+              </p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h5 className="text-green-800 font-medium">Highest Performing</h5>
+                <p className="text-2xl font-bold text-green-700">{insights.highestSection.name}</p>
+                <p className="text-green-700">{insights.highestSection.grade.toFixed(1)}%</p>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h5 className="text-blue-800 font-medium">Class Average</h5>
+                <p className="text-2xl font-bold text-blue-700">{insights.averageGrade}%</p>
+                <p className="text-blue-700">{insights.sectionCount} valid sections</p>
+              </div>
+              
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <h5 className="text-red-800 font-medium">Needs Improvement</h5>
+                <p className="text-2xl font-bold text-red-700">{insights.lowestSection.name}</p>
+                <p className="text-red-700">{insights.lowestSection.grade.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case "overallTrends":
+        return (
+          <div>
+            <h4 className="text-lg font-medium mb-2">Overall Performance Analysis</h4>
+            {insights.missingDataPoints > 0 && (
+              <p className="text-yellow-600 mb-3">
+                Note: {insights.missingDataPoints} data points are missing or invalid out of {insights.validDataPoints + insights.missingDataPoints} total.
+              </p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {insights.mostImproved && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h5 className="text-green-800 font-medium">Most Improved</h5>
+                  <p className="text-2xl font-bold text-green-700">{insights.mostImproved.section}</p>
+                  <p className="text-green-700">
+                    {insights.mostImproved.trend > 0 ? `+${insights.mostImproved.trend.toFixed(1)}` : insights.mostImproved.trend.toFixed(1)}% change
+                  </p>
+                </div>
+              )}
+              
+              {insights.highestAverage && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h5 className="text-blue-800 font-medium">Highest Average</h5>
+                  <p className="text-2xl font-bold text-blue-700">{insights.highestAverage.section}</p>
+                  <p className="text-blue-700">{insights.highestAverage.average.toFixed(1)}% average</p>
+                </div>
+              )}
+              
+              <div className="col-span-1 md:col-span-2 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h5 className="text-yellow-800 font-medium">Class Overview</h5>
+                <p className="text-xl font-bold text-yellow-700">
+                  {insights.overallAverage === "N/A" ? "Insufficient data for average" : `${insights.overallAverage}% overall average`}
+                </p>
+                <p className="text-yellow-700">
+                  {insights.mostDeclined && insights.mostDeclined.trend < -5 ? 
+                    `Note: ${insights.mostDeclined.section} shows a significant decrease of ${insights.mostDeclined.trend.toFixed(1)}%` : 
+                    "All sections performing within normal ranges"}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case "quarterSnapshot":
+        return (
+          <div>
+            <h4 className="text-lg font-medium mb-2">Quarter {insights.quarter.substring(1)} Snapshot</h4>
+            {insights.totalSubjects - insights.validSubjects > 0 && (
+              <p className="text-yellow-600 mb-3">
+                Note: {insights.totalSubjects - insights.validSubjects} out of {insights.totalSubjects} subjects have missing or invalid grade data.
+              </p>
+            )}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h5 className="text-blue-800 font-medium">Performance Summary</h5>
+                <p className="text-xl font-bold text-blue-700">{insights.averageGrade}% average</p>
+                <p className="text-blue-700">
+                  Strongest: {insights.highestSubject.subject} ({insights.highestSubject.grade.toFixed(1)}%)
+                </p>
+                <p className="text-blue-700">
+                  Needs focus: {insights.lowestSubject.subject} ({insights.lowestSubject.grade.toFixed(1)}%)
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      
       default:
-        return 'text-gray-600';
+        return null;
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow mt-5">
       <h3 className="text-xl font-semibold mb-4">Chart Analysis</h3>
+      {renderInsights()}
       
-      {/* Data coverage indicator */}
-      <div className="mb-4">
-        <div className="flex items-center mb-2">
-          <span className="text-sm font-medium text-gray-700 mr-2">Data Coverage:</span>
-          <div className="flex-1 bg-gray-200 rounded-full h-2.5">
-            <div 
-              className="h-2.5 rounded-full"
-              style={{ 
-                width: `${analysis.assessmentCoverage}%`, 
-                backgroundColor: analysis.assessmentCoverage > 70 ? '#22c55e' : analysis.assessmentCoverage > 40 ? '#f59e0b' : '#ef4444'
-              }}
-            ></div>
-          </div>
-          <span className="text-sm font-medium text-gray-700 ml-2">{analysis.assessmentCoverage}%</span>
-        </div>
-        {analysis.missingDataSummary && (
-          <p className="text-sm text-amber-700">{analysis.missingDataSummary}</p>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h4 className="text-lg font-medium text-gray-800 mb-2">Performance Overview</h4>
-          <p className="text-gray-700 mb-4">{analysis.performanceSummary}</p>
-          
-          <h4 className="text-lg font-medium text-gray-800 mb-2">Key Statistics</h4>
-          <ul className="space-y-2 text-gray-700">
-            {analysis.highest.value > 0 && (
-              <li>
-                <span className="font-medium">Highest Grade:</span> {analysis.highest.value} 
-                ({analysis.highest.dataKey} in {analysis.highest.category})
-              </li>
-            )}
-            {analysis.lowest.value < 100 && analysis.lowest.value > 0 && (
-              <li>
-                <span className="font-medium">Lowest Grade:</span> {analysis.lowest.value}
-                ({analysis.lowest.dataKey} in {analysis.lowest.category})
-              </li>
-            )}
-            <li className="font-medium mt-2">Average Grades:</li>
-            <ul className="ml-5 space-y-1">
-              {Object.entries(analysis.averages).map(([key, value]) => (
-                <li key={key}>
-                  <span className="text-gray-600">{key}:</span>{' '}
-                  {value === 'No data' ? <span className="text-amber-600">No data</span> : value}
-                </li>
-              ))}
-            </ul>
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <h4 className="text-lg font-medium mb-2">Recommended Actions</h4>
+        {insights?.noValidData ? (
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Check data entry for missing or invalid grades (zero, undefined, or null values).</li>
+            <li>Ensure all grades are entered as valid numbers greater than zero.</li>
+            <li>Confirm that the correct data format is being used for this chart type.</li>
           </ul>
-        </div>
-
-        <div>
-          <h4 className="text-lg font-medium text-gray-800 mb-2">Trend Analysis</h4>
-          {analysis.trendSummary && (
-            <p className="text-gray-700 mb-3">{analysis.trendSummary}</p>
-          )}
-          
-          {analysis.trends.length > 0 ? (
-            <div className="space-y-4">
-              {analysis.trends.map((trend, index) => (
-                <div key={index} className="border rounded-md p-3">
-                  <div className="flex items-center mb-2">
-                    {renderTrendIcon(trend.trendDirection)}
-                    <span className="font-medium ml-2">{trend.dataKey}</span>
-                    <span className={`ml-auto ${getTrendColor(trend.trendDirection)}`}>
-                      {trend.difference > 0 ? '+' : ''}{trend.difference} points ({trend.percentChange}%)
-                    </span>
-                  </div>
-                  
-                  <div className="text-sm grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-gray-500">From:</span> {trend.firstValue} ({trend.firstCategory})
-                    </div>
-                    <div>
-                      <span className="text-gray-500">To:</span> {trend.lastValue} ({trend.lastCategory})
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Data points:</span> {trend.dataPoints}
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Consistency:</span> {trend.consistency}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-700 mb-4">Not enough data points to analyze trends. More assessments are needed.</p>
-          )}
-        </div>
+        ) : insights?.type === "quarterTrends" && (
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Focus on consistency in subjects showing fluctuating performance.</li>
+            <li>Consider additional support for declining subjects before the next quarter.</li>
+            <li>Document successful teaching strategies from improving subjects.</li>
+          </ul>
+        )}
+        
+        {insights?.type === "sectionComparison" && !insights?.noValidData && (
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Consider peer learning between high and low performing sections.</li>
+            <li>Review teaching methods used in the highest performing section.</li>
+            <li>Schedule intervention for sections below 70% performance.</li>
+            {insights.invalidSections > 0 && (
+              <li>Complete data entry for the {insights.invalidSections} sections with missing grades.</li>
+            )}
+          </ul>
+        )}
+        
+        {insights?.type === "overallTrends" && !insights?.noValidData && (
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Implement strategies from the most improved section across other classes.</li>
+            <li>Schedule a review of curriculum if overall average is below target.</li>
+            <li>Provide additional resources to sections showing consistent decline.</li>
+            {insights.missingDataPoints > 0 && (
+              <li>Address data gaps to ensure more accurate trend analysis in the future.</li>
+            )}
+          </ul>
+        )}
+        
+        {insights?.type === "quarterSnapshot" && !insights?.noValidData && (
+          <ul className="list-disc pl-5 space-y-2">
+            <li>Create targeted practice activities for the lowest performing subject.</li>
+            <li>Consider additional assessments to identify specific areas of difficulty.</li>
+            <li>Review the assessment difficulty if grades are significantly lower than expected.</li>
+            {insights.totalSubjects - insights.validSubjects > 0 && (
+              <li>Complete missing grade data for a more comprehensive analysis.</li>
+            )}
+          </ul>
+        )}
       </div>
     </div>
   );

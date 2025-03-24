@@ -5,8 +5,6 @@ const ChartFilters = ({
   schoolYears,
   selectedSchoolYear,
   setSelectedSchoolYear,
-  chartTypes,
-  chartType,
   setChartType,
   dataTypeOptions,
   dataType,
@@ -33,6 +31,26 @@ const ChartFilters = ({
     }
   }, [selectedSubject, selectedSection, setSelectedSection]);
 
+  // Auto-select best chart type based on data selection
+  useEffect(() => {
+    if (dataType && selectedQuarter) {
+      // Choose the best chart type based on data type and quarter selection
+      if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
+        // Line chart is best for showing performance trends over time for a single section
+        setChartType("line");
+      } else if (dataType === "sectionsPerformance" && selectedQuarter === "all") {
+        // Area chart is good for comparing multiple sections across all quarters
+        setChartType("area");
+      } else if (dataType === "sectionsPerformance" && selectedQuarter !== "all") {
+        // Bar chart is best for comparing sections in a specific quarter
+        setChartType("bar");
+      } else if (dataType === "singleSectionPerformance" && selectedQuarter !== "all") {
+        // For single section in a specific quarter, bar chart works well
+        setChartType("bar");
+      }
+    }
+  }, [dataType, selectedQuarter, setChartType]);
+
   const handleDataTypeChange = (newDataType) => {
     const selected = dataTypeOptions.find((option) => option.label === newDataType);
     if (selected) {
@@ -54,15 +72,6 @@ const ChartFilters = ({
           options={schoolYears.map((year) => year.name)}
           selected={selectedSchoolYear}
           setSelected={setSelectedSchoolYear}
-        />
-        <Dropdown
-          label="Chart Type"
-          options={chartTypes.map((type) => type.label)}
-          selected={chartTypes.find((type) => type.value === chartType)?.label}
-          setSelected={(label) => {
-            const selected = chartTypes.find((type) => type.label === label);
-            if (selected) setChartType(selected.value);
-          }}
         />
         <Dropdown
           label="Data Visualization"

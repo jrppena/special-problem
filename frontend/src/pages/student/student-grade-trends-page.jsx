@@ -5,8 +5,6 @@ import ChartFilters from "../../components/student/chart-filters";
 import GradeChart from "../../components/student/grade-chart";
 import NoDataDisplay from "../../components/student/no-data-display";
 import StudentChartAnalysis from "../../components/student/chart-analysis";
-
-
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
 
@@ -31,19 +29,11 @@ const StudentGradeTrendsPage = () => {
     { name: "2021-2022" },
   ];
 
-  // Chart type options
-  const chartTypes = [
-    { value: "line", label: "Line Chart" },
-    { value: "bar", label: "Bar Chart" },
-    { value: "area", label: "Area Chart" },
-    { value: "radar", label: "Radar Chart" },
-  ];
-
-  // Data type options
+  // Data type options with clearer labels
   const dataTypeOptions = [
-    { value: "singleSubjectAcrossQuarters", label: "Single Subject Across 4 Quarters" },
-    { value: "subjectsAcrossQuarters", label: "Different Subjects Across 4 Quarters" },
-    { value: "subjectsInOneQuarter", label: "Different Subjects in 1 Quarter" },
+    { value: "singleSubjectAcrossQuarters", label: "Single Subject Performance Over Time" },
+    { value: "subjectsAcrossQuarters", label: "Compare Subjects Across All Quarters" },
+    { value: "subjectsInOneQuarter", label: "Compare Subjects in One Quarter" },
   ];
 
   // Set default subject when classes are loaded
@@ -102,7 +92,6 @@ const StudentGradeTrendsPage = () => {
           schoolYears={schoolYears}
           selectedSchoolYear={selectedSchoolYear}
           setSelectedSchoolYear={setSelectedSchoolYear}
-          chartTypes={chartTypes}
           chartType={chartType}
           setChartType={setChartType}
           dataTypeOptions={dataTypeOptions}
@@ -126,7 +115,13 @@ const StudentGradeTrendsPage = () => {
           chartData.length > 0 && (
             <div className="space-y-5">
               <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-semibold mb-4">Grade Trends Visualization</h3>
+                <h3 className="text-xl font-semibold mb-4">
+                  {dataType === "singleSubjectAcrossQuarters" 
+                    ? "Subject Performance Over Time" 
+                    : dataType === "subjectsAcrossQuarters" 
+                      ? "Comparing All Subjects Across Quarters" 
+                      : `Subject Comparison for ${selectedQuarter}`}
+                </h3>
                 <div className="h-96">
                   <GradeChart 
                     chartType={chartType} 

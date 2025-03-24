@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import Dropdown from "../drop-down";
+import ChartToolTip from "./chart-tooltip";
 
 const ChartFilters = ({
   schoolYears,
   selectedSchoolYear,
   setSelectedSchoolYear,
-  chartTypes,
   chartType,
   setChartType,
   dataTypeOptions,
@@ -38,6 +38,17 @@ const ChartFilters = ({
     }
   }, [classes, selectedSubject, setSelectedSubject]);
 
+  // Auto-select the most appropriate chart type based on data visualization type
+  useEffect(() => {
+    if (dataType === "singleSubjectAcrossQuarters") {
+      setChartType("line"); // Line chart is best for tracking a single subject over time
+    } else if (dataType === "subjectsAcrossQuarters") {
+      setChartType("line"); // Line chart works well for comparing multiple subjects over time
+    } else if (dataType === "subjectsInOneQuarter") {
+      setChartType("bar"); // Bar chart is ideal for comparing subjects in a single quarter
+    }
+  }, [dataType, setChartType]);
+
   // Handle data type change
   const handleDataTypeChange = (newDataType) => {
     const selected = dataTypeOptions.find((option) => option.label === newDataType);
@@ -61,22 +72,12 @@ const ChartFilters = ({
   return (
     <div className="bg-white p-6 rounded-lg shadow mt-5">
       <h3 className="text-xl font-semibold mb-4">Chart Options</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <Dropdown
           label="School Year"
           options={schoolYears.map((year) => year.name)}
           selected={selectedSchoolYear}
           setSelected={setSelectedSchoolYear}
-        />
-
-        <Dropdown
-          label="Chart Type"
-          options={chartTypes.map((type) => type.label)}
-          selected={chartTypes.find((type) => type.value === chartType)?.label}
-          setSelected={(label) => {
-            const selected = chartTypes.find((type) => type.label === label);
-            if (selected) setChartType(selected.value);
-          }}
         />
 
         <Dropdown
@@ -114,12 +115,20 @@ const ChartFilters = ({
         )}
       </div>
       
-      <button
-        onClick={generateChartData}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
-      >
-        Generate Chart
-      </button>
+      <ChartToolTip 
+        chartType={chartType} 
+        dataType={dataType} 
+        selectedQuarter={selectedQuarter} 
+      />
+      
+      <div className="mt-4">
+        <button
+          onClick={generateChartData}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+        >
+          Generate Chart
+        </button>
+      </div>
     </div>
   );
 };
