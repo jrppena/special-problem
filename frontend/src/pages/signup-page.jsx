@@ -1,6 +1,6 @@
 import React from 'react';
 import schoolImage from "../assets/school.jpg";
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { EyeOff } from 'lucide-react';
 import { Eye } from 'lucide-react';
@@ -26,7 +26,15 @@ function SignupPage() {
         role: role,
         gradeLevel: selectedGradeLevel,
     });
+    
+    useEffect(() => {
+      setFormData((prevData) => ({
+          ...prevData,
+          gradeLevel: selectedGradeLevel,
+      }));
+  }, [selectedGradeLevel]);
 
+  
     const {signup} = useAuthStore();
     const [currentErrorIndex, setCurrentErrorIndex] = useState(0); // Track error position
     const [errors, setErrors] = useState([]); // Store all errors
@@ -113,7 +121,11 @@ function SignupPage() {
         e.preventDefault();
         const success = validateForm();
 
-        if(success) signup(formData);
+        if(success) {
+          console.log(formData);
+          signup(formData)
+
+        };
 
     }
 
@@ -308,8 +320,7 @@ function SignupPage() {
                                 <div className="col-span-6">
                                     <label className="block text-lg font-medium text-gray-700">Select Current Grade Level</label>
                                     <select className="mt-2 w-full p-3 border rounded-md" value={selectedGradeLevel} onChange={(e) => setSelectedGradeLevel(e.target.value)}>
-                                        <option value="">Select...</option>
-                                        {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
+\                                        {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
                                             <option key={grade} value={grade}>{grade}</option>
                                         ))}
                                     </select>

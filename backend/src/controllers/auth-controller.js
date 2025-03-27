@@ -8,7 +8,6 @@ import {cloudinary} from '../config/cloudinary.js';
 
 const signup = async (req, res) => {
     const {first_name, last_name, email, password, role, gradeLevel} = req.body;
-    
     try{
         const existingUser = await User
             .findOne({email})
@@ -37,7 +36,7 @@ const signup = async (req, res) => {
         });
 
         if(gradeLevel){
-            user.gradeLevel = gradeLevel;
+            user.gradeLevel = parseInt(gradeLevel.split(" ")[1]);
         }
 
         if(user){

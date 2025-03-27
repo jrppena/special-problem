@@ -44,7 +44,7 @@ const studentFunctions = [
 const teacherFunctions = [
     {
         "name": "Section Management",
-        "description": "Add and manage students to sections you are advising",
+        "description": "Add and manage students to sections you are advising, or also view the grades of students you are advising",
         "icon": "/assets/admin/section.png", 
         "button-name": "Manage Sections",
         "route": "/teacher/manage-sections"
