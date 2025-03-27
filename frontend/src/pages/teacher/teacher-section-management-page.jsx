@@ -9,14 +9,25 @@
   import { useTeacherStore } from "../../store/useTeacherStore";
   import { useAuthStore } from "../../store/useAuthStore";
   import toast from "react-hot-toast";
-  import { Trash2 } from "lucide-react";
+  import { Trash2, FileText} from "lucide-react";
+  import StudentGradesModal from "./student-grades-modal"; // Import the new modal component
+  import { useNavigate } from "react-router-dom";
+  import SectionGradesModal from "./section-grades-modal";
+
 
   const TeacherSectionManagementPage = () => {
     const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
     const [selectedSection, setSelectedSection] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedStudentGrades,setSelectedStudentGrades] = useState({})
+    const [isGradesModalOpen, setIsGradesModalOpen] = useState(false);
+    const [selectedStudentName, setSelectedStudentName] = useState("");
+    const navigate = useNavigate();
+    const [isSectionGradesModalOpen, setIsSectionGradesModalOpen] = useState(false);
+
+
     const { adviserSections, getAdviserSections } = useSectionStore();
-    const { availableStudents, getAvailableStudents, addStudentToSection, removeStudentFromSection } = useTeacherStore();
+    const { availableStudents, getAvailableStudents, addStudentToSection, getSpecificStudentGrades, getAdviserSectionGrades, adviserSectionGrades,removeStudentFromSection } = useTeacherStore();
     const { authUser } = useAuthStore();
     const [modalStudents, setModalStudents] = useState([]);
 
@@ -105,6 +116,66 @@
       let filteredStudents = filterStudents(selectedSection?.students || []);
       return sortStudents(filteredStudents);
     };
+
+    const handleViewGrades = async (student) => {
+      if (!selectedSection?._id || !selectedSchoolYear) {
+        toast.error("Please select a section and school year first");
+        return;
+      }
+    
+      const loadingToast = toast.loading("Fetching student grades...");
+    
+      try {
+        const grades = await getSpecificStudentGrades(student._id, selectedSection._id, selectedSchoolYear);
+        
+        toast.dismiss(loadingToast);
+        
+        if (grades && Object.keys(grades).length > 0) {
+          setSelectedStudentGrades(grades);
+          setSelectedStudentName(`${student.firstName} ${student.lastName}`);
+          setIsGradesModalOpen(true);
+        } else {
+          toast.error("No grades found for this student.");
+        }
+      } catch (error) {
+        console.error("Error fetching grades:", error);
+        toast.dismiss(loadingToast);
+        toast.error("Failed to load grades.");
+      }
+    };
+    
+    // In the render method
+    {isGradesModalOpen && selectedStudentGrades && (
+      <StudentGradesModal 
+        grades={selectedStudentGrades}
+        studentName={selectedStudentName}
+        onClose={() => setIsGradesModalOpen(false)} 
+      />
+    )}
+
+    const showSectionGrades = async () => {
+      if (!selectedSection?._id || !selectedSchoolYear) {
+        toast.error("Please select a section first");
+        return;
+      }
+    
+      const loadingToast = toast.loading("Fetching section grades...");
+      try {
+        await getAdviserSectionGrades(selectedSection._id, selectedSchoolYear);
+        setIsSectionGradesModalOpen(true);
+        toast.dismiss(loadingToast);
+      } catch (error) {
+        toast.dismiss(loadingToast);
+        toast.error("Failed to load section grades");
+      }
+    };
+
+    useEffect(() => {
+      if(adviserSectionGrades){
+        console.log(adviserSectionGrades)
+
+      }
+    },[adviserSectionGrades])
 
     return (
       <div>
@@ -201,7 +272,14 @@
                               <td className="px-6 py-4 whitespace-nowrap">
                                 {student.address?.trim() ? student.address : "Not Yet Updated"}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
+                              <td className="px-6 py-4 flex gap-4 whitespace-nowrap">
+                                <button
+                                  onClick={() => handleViewGrades(student)}
+                                  className="text-blue-500 hover:underline flex items-center gap-1"
+                                >
+                                  <FileText className="w-5 h-5" />
+                                  View Grades
+                                </button>
                                 <button
                                   onClick={() => handleRemoveStudent(student._id)}
                                   className="text-red-500 hover:underline flex items-center gap-1"
@@ -224,6 +302,13 @@
                     >
                       Add Student to Class
                     </button>
+                    <button
+                      onClick={showSectionGrades}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ml-4"
+                    >
+                      Show Section Grades
+                    </button>
+                    
                   </div>
                 </div>
               )}
@@ -254,6 +339,22 @@
               </div>
             </div>
           )}
+          {isGradesModalOpen && selectedStudentGrades && (
+            <StudentGradesModal 
+              grades={selectedStudentGrades}
+              studentName={selectedStudentName}
+              onClose={() => setIsGradesModalOpen(false)} 
+            />
+          )}
+          {Object.keys(adviserSectionGrades).length > 0 && (
+  <SectionGradesModal
+    isOpen={isSectionGradesModalOpen}
+    onClose={() => setIsSectionGradesModalOpen(false)}
+    section={selectedSection}
+    grades={adviserSectionGrades}
+  />
+)}
+
       </div>
     );
   };

@@ -13,7 +13,9 @@ export const useTeacherStore = create((set) => ({
     isFetchingAvailableStudents: false,
     assignedClasses: [],
     classGrades: {},
-
+    selectedStudentGrades: {},
+    adviserSectionGrades: {},
+    
     getTeachers: async () => {
         set({isFetchingTeachers: true});
         try{
@@ -126,6 +128,33 @@ export const useTeacherStore = create((set) => ({
           return null;
         }
       },
+
+      getSpecificStudentGrades: async (studentId, sectionId, schoolYear) => {
+        try {
+          const response = await axiosInstance.get('teacher/get/specific-student-grades', {
+            params: { studentId, sectionId, schoolYear },
+          });
+          set({selectedStudentGrades:response.data})
+      
+          toast.success("Successfully fetched student grades");
+          return(response.data)
+        } catch (error) {
+          console.error('Error:', error.response?.data || error.message);
+          toast.error('Failed to get grades');
+        }
+      },
+
+      getAdviserSectionGrades: async(sectionId, schoolYear)=>{
+        try{
+            const response = await axiosInstance.get('teacher/get/section-grades',{
+                params:{sectionId, schoolYear}
+            });
+            console.log(response.data);
+            set({adviserSectionGrades: response.data});
+        }catch(error){
+            console.log('Error in getAdviserSectionGrades: ', error);
+        }
+      }
       
 
 

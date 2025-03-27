@@ -13,5 +13,7 @@ router.get('/get/assigned-classes', protectRoute, teacherRoutes.getAssignedClass
 router.post('/update/student-grades', protectRoute, teacherRoutes.updateStudentGrades);
 router.get('/get/class-grades', protectRoute, teacherRoutes.getClassGrades);
 router.get('/get/chart-data', protectRoute, teacherRoutes.getChartData);
+router.get('/get/specific-student-grades',protectRoute, teacherRoutes.getSpecificStudentGrades)
+router.get('/get/section-grades', protectRoute, teacherRoutes.getSectionGrades);
 
 export default router;

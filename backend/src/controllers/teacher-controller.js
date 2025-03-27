@@ -182,31 +182,7 @@ const addStudentToSection =  async (req, res) => {
       }
       return numericGrade;
   };
-
-  // 🟢 Check if a grade should be updated (ignores empty & unchanged grades)
-  const shouldUpdateGrade = (existingGradesMap, studentId, gradingPeriod, newGrade) => {
-    const currentGradeInDB = existingGradesMap[studentId]?.[gradingPeriod] ?? "-";
-
-    // Convert to string for safe comparison
-    const newGradeStr = String(newGrade);
-
-    // Skip updating if:
-    // - The new grade is empty ("-" or "")
-    // - The new grade is the same as the current grade in the database
-    return !(newGradeStr.trim() === "-" || newGradeStr.trim() === "" || newGrade === currentGradeInDB);
-  };
-
-  // 🟢 Update or insert grade in the database
-  const updateOrCreateGrade = async (selectedClass, studentId, gradingPeriod, gradeValue) => {
-      let existingGrade = await Grade.findOne({ class: selectedClass, student: studentId, gradingPeriod });
-
-      if (existingGrade) {
-          existingGrade.gradeValue = gradeValue;
-          await existingGrade.save();
-      } else {
-          await Grade.create({ class: selectedClass, student: studentId, gradingPeriod, gradeValue });
-      }
-  };
+  
 
     const updateStudentGrades = async (req, res) => {
       try {
@@ -429,13 +405,202 @@ const getChartData = async (req, res) => {
       return res.status(500).json({ message: "Failed to generate chart data" });
     }
   };
+
+
+  const getSpecificStudentGrades = async (req, res) => {
+    const studentId = req.query.studentId;
+    const sectionId = req.query.sectionId;
+    const schoolYear = req.query.schoolYear;
+
+    try {
+        // Fetch classes for the given sectionId and schoolYear
+        const classes = await Class.find({
+            sections: { $in: [sectionId] },
+            schoolYear: schoolYear
+        });
+
+        const dummyGradesData = [];
+        const quarterGrades = { Q1: [], Q2: [], Q3: [], Q4: [] };  // To store grades by quarter for overall average calculation
+
+        // Iterate over each class
+        for (const classItem of classes) {
+            // Fetch grades for the given student, class, and school year
+            const grades = await Grade.find({
+                class: classItem._id,
+                student: studentId,
+            });
+
+            // Initialize the object for this class
+            const gradeMapData = {
+                classId: classItem._id,
+                className: classItem.subjectName, // Using subjectName as the class name
+                grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" }, // Set default grades as "-"
+                average: "-" // Default average
+            };
+            
+            let totalGrades = 0;
+            let validGradesCount = 0;
+
+            // Populate grades for each grading period (Q1, Q2, Q3, Q4)
+            grades.forEach(grade => {
+                if (gradeMapData.grades.hasOwnProperty(grade.gradingPeriod)) {
+                    const gradeValue = grade.gradeValue;
+            
+                    // Check if the gradeValue is a valid number
+                    if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
+                        gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString(); // Convert grade to string
+                        totalGrades += gradeValue; // Add to total grades
+                        validGradesCount++; // Increment valid grades count
+                        
+                        // Add the grade to the respective quarter for overall average calculation
+                        quarterGrades[grade.gradingPeriod].push(gradeValue);
+                    }
+                }
+            });
+
+            // Calculate the average for the subject (class) if there are valid grades
+            if (validGradesCount > 0) {
+                gradeMapData.average = (totalGrades / validGradesCount).toFixed(2); // Round to 2 decimal places
+            } else {
+                gradeMapData.average = "-"; // No valid grades available
+            }
+
+            // Push the gradeMapData object to dummyGradesData
+            dummyGradesData.push(gradeMapData);
+        }
+
+        // Calculate the average for each quarter (Q1, Q2, Q3, Q4) across all subjects
+        const quarterAverages = {};
+        for (const quarter in quarterGrades) {
+            const quarterGradeValues = quarterGrades[quarter];
+            if (quarterGradeValues.length > 0) {
+                const totalQuarter = quarterGradeValues.reduce((acc, value) => acc + value, 0); // Sum of grades for the quarter
+                const quarterAverage = totalQuarter / quarterGradeValues.length; // Calculate average
+                quarterAverages[quarter] = quarterAverage.toFixed(2); // Round to 2 decimal places
+            } else {
+                quarterAverages[quarter] = "-"; // No grades for this quarter
+            }
+        }
+
+        const studentGrades = {classes:dummyGradesData,quarterAverages:quarterAverages}
+
+        // Return both the per-subject grades and quarter averages
+        res.status(200).json(studentGrades);
   
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ message: "Something went wrong" });
+    }
+};
 
+const getSectionGrades = async (req, res) => {
+  const { sectionId, schoolYear } = req.query;
 
-  
-    
+  try {
+    // Fetch the section and its students in one query, no need for separate calls
+    const section = await Section.findById(sectionId)
+      .populate({
+        path: 'students',
+        select: '_id firstName lastName', // Select only the fields needed
+      })
+      .exec();
 
-    
+    // If no section found or no students in the section
+    if (!section || !section.students.length) {
+      return res.status(404).json({
+        message: "No students found in this section",
+      });
+    }
+
+    // Fetch the grades for all students in the section and classes for the given schoolYear in one query
+    const classes = await Class.find({
+      sections: { $in: [sectionId] },
+      schoolYear: schoolYear,
+    }).select('_id subjectName'); // Select only the fields needed
+
+    // Create a map of class IDs to class names
+    const classMap = new Map(classes.map((classItem) => [classItem._id.toString(), classItem.subjectName]));
+
+    // Aggregate all grades for the students in the section and school year
+    const allGrades = await Grade.find({
+      student: { $in: section.students.map((student) => student._id) },
+      class: { $in: classes.map((classItem) => classItem._id) },
+    }).exec();
+
+    // Initialize an object to hold student grade data
+    const studentsGradesData = section.students.map((student) => {
+      const dummyGradesData = [];
+      const quarterGrades = { Q1: [], Q2: [], Q3: [], Q4: [] };
+
+      // Filter grades for this student
+      const studentGrades = allGrades.filter((grade) => grade.student.toString() === student._id.toString());
+
+      classes.forEach((classItem) => {
+        const gradeMapData = {
+          classId: classItem._id,
+          className: classMap.get(classItem._id.toString()) || classItem.subjectName,
+          grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" },
+          average: "-",
+        };
+
+        let totalGrades = 0;
+        let validGradesCount = 0;
+
+        // Populate grades for each grading period
+        studentGrades
+          .filter((grade) => grade.class.toString() === classItem._id.toString())
+          .forEach((grade) => {
+            const gradeValue = grade.gradeValue;
+            if (typeof gradeValue === "number" && !isNaN(gradeValue)) {
+              if (gradeMapData.grades.hasOwnProperty(grade.gradingPeriod)) {
+                gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString();
+                totalGrades += gradeValue;
+                validGradesCount++;
+
+                // Add the grade to the respective quarter for overall average calculation
+                quarterGrades[grade.gradingPeriod].push(gradeValue);
+              }
+            }
+          });
+
+        // Calculate the average for the subject
+        if (validGradesCount > 0) {
+          gradeMapData.average = (totalGrades / validGradesCount).toFixed(2);
+        } else {
+          gradeMapData.average = "-";
+        }
+
+        dummyGradesData.push(gradeMapData);
+      });
+
+      // Calculate the average for each quarter across all subjects
+      const quarterAverages = {};
+      for (const quarter in quarterGrades) {
+        const quarterGradeValues = quarterGrades[quarter];
+        if (quarterGradeValues.length > 0) {
+          const totalQuarter = quarterGradeValues.reduce((acc, value) => acc + value, 0);
+          quarterAverages[quarter] = (totalQuarter / quarterGradeValues.length).toFixed(2);
+        } else {
+          quarterAverages[quarter] = "-";
+        }
+      }
+
+      return {
+        studentId: student._id,
+        studentName: `${student.firstName} ${student.lastName}`,
+        classes: dummyGradesData,
+        quarterAverages: quarterAverages,
+      };
+    });
+
+    // Return students' grades data
+    res.status(200).json(studentsGradesData);
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 
 export const teacherRoutes = {
     getTeachers,
@@ -446,6 +611,8 @@ export const teacherRoutes = {
     getAssignedClasses,
     updateStudentGrades,
     getClassGrades,
-    getChartData
+    getChartData,
+    getSpecificStudentGrades,
+    getSectionGrades
 };
 
