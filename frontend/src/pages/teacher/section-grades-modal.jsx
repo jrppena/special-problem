@@ -35,14 +35,14 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
     if (isNaN(average)) return { honor: null, average: null };
     
     let honor = null;
-    if (average >= 98) honor = "with highest honors";
-    else if (average >= 95) honor = "with high honors";
-    else if (average >= 90) honor = "with honors";
+    if (average >= 98) honor = "With Highest Honors";
+    else if (average >= 95) honor = "With High Honors";
+    else if (average >= 90) honor = "With Honors";
     
     return { honor, average };
   };
 
-  const honorOrder = ["with highest honors", "with high honors", "with honors"];
+  const honorOrder = ["With Highest Honors", "With High Honors", "With Honors"];
   const honorsList = (grades || []).reduce((acc, student) => {
     const { honor, average } = getHonorAndAverage(student, selectedFilter);
     if (honor) {
