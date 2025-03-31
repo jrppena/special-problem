@@ -12,6 +12,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { Download } from "lucide-react";
 import { Upload } from "lucide-react";
+import Pagination from "../../components/pagination"; // import Pagination component
 
 const TeacherManageGradesPage = () => {
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
@@ -25,6 +26,11 @@ const TeacherManageGradesPage = () => {
 
   // Sorting state
   const [sortByStudentLastName, setSortByStudentLastName] = useState("No Filter");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Items per page
+  const [isShowingAll, setIsShowingAll] = useState(false); // Show all toggle
 
   const { assignedClasses, getAssignedClasses, classGrades, getClassGrades, updateStudentGrades } = useTeacherStore();
   const { authUser } = useAuthStore();
@@ -159,6 +165,15 @@ const TeacherManageGradesPage = () => {
     { value: "Q4", label: "Quarter 4" },
     { value: "all", label: "All Quarters" },
   ];
+  
+// Pagination Logic for Students
+const paginatedStudents = isShowingAll
+  ? sortStudents(selectedSection?.students || []) // Always sort students if showing all
+  : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+  );
+
 
   const handleDownloadTemplate = async () => {
     if (!selectedSection) {
@@ -408,7 +423,7 @@ const TeacherManageGradesPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {sortStudents(selectedSection.students).map((student) => (
+                    {paginatedStudents.map((student) => (
                         <tr key={student._id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {student.firstName} {student.lastName}
@@ -454,8 +469,17 @@ const TeacherManageGradesPage = () => {
                       ))}
                     </tbody>
                   </table>
+                  
                 </div>
-
+                  {/* Pagination Controls */}
+                <Pagination
+                  totalItems={selectedSection.students.length}
+                  itemsPerPage={itemsPerPage}
+                  currentPage={currentPage}
+                  setCurrentPage={setCurrentPage}
+                  isShowingAll={isShowingAll}
+                  setIsShowingAll={setIsShowingAll}
+                />
                 <div className="flex justify-start mt-4 gap-4">
                   <button
                     onClick={handleEditMode}
