@@ -1,32 +1,34 @@
-import React, { useState } from "react";
-import { useEffect } from "react";
-
-import Select from "react-select"; // Importing react-select
+import React, { useState, useEffect } from "react";
+import Select from "react-select";
 import Navbar from "../../components/navigation-bar";
 import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
 import SearchFilter from "../../components/search-filter";
+import Pagination from "../../components/pagination"; // Import the Pagination component
 
 import { schoolYears } from "../../constants";
-import {useSectionStore} from "../../store/useSectionStore";
-import {useTeacherStore} from "../../store/useTeacherStore";
+import { useSectionStore } from "../../store/useSectionStore";
+import { useTeacherStore } from "../../store/useTeacherStore";
 import { useClassStore } from "../../store/useClassStore";
 
-import { Pen, Trash2 } from "lucide-react"; // Correct import for lucide-react icons
+import { Pen, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { gradeLevels } from "../../constants";
 import Exceljs from "exceljs";
 
-
 const AdminManageClassPage = () => {
-  
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
-    
-  const {classes, fetchClasses, createClass, editClass, deleteClass,createClassThroughImport,isCreatingClasses,deleteAllClassesGivenSchoolYear} = useClassStore();
-  const {sections, fetchSections} = useSectionStore();
-  const {teachers, getTeachers} = useTeacherStore();
   
-  useEffect (() => {
+  const { classes, fetchClasses, createClass, editClass, deleteClass, createClassThroughImport, isCreatingClasses, deleteAllClassesGivenSchoolYear } = useClassStore();
+  const { sections, fetchSections } = useSectionStore();
+  const { teachers, getTeachers } = useTeacherStore();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Show 10 classes per page
+  const [isShowingAll, setIsShowingAll] = useState(false);
+  
+  useEffect(() => {
     fetchClasses(selectedSchoolYear);
     fetchSections(selectedSchoolYear);
     getTeachers();
@@ -47,7 +49,7 @@ const AdminManageClassPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentClass, setCurrentClass] = useState(null);
   
-  const [modalSections, setModalSections] = useState([]); // Initialize as an empty array
+  const [modalSections, setModalSections] = useState([]);
   const [modalSubject, setModalSubject] = useState("");
   const [modalTeachers, setModalTeachers] = useState(null);
   const [modalGradeLevel, setModalGradeLevel] = useState();
@@ -56,6 +58,7 @@ const AdminManageClassPage = () => {
 
   const handleSearchClass = (value) => {
     setSearchClassName(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleModalSectionChange = (selectedOptions) => {
@@ -67,30 +70,29 @@ const AdminManageClassPage = () => {
     setModalSubject("");
     setModalSections([]);
     setModalTeachers([]);
-    setModalGradeLevel(gradeLevels[0].value); // Set first grade level
+    setModalGradeLevel(gradeLevels[0].value);
     setIsModalOpen(true);
   };
   
-
   const openEditClassModal = (classItem) => {
     setCurrentClass(classItem);
     setModalSubject(classItem.subjectName);
     
-    // Map the existing sections to match the format that react-select expects
     setModalSections(
       classItem.sections.map((section) => ({
-        value: section._id,    // The unique identifier for react-select
-        label: `${section.name} (Grade ${section.gradeLevel})`, // Display name
+        value: section._id,
+        label: `${section.name} (Grade ${section.gradeLevel})`,
       }))
     );
     
-   setModalTeachers(
-      classItem.teachers.map((teacher)=>({
-      value: teacher._id,
-      label: `${teacher.firstName} ${teacher.lastName}`
-   }))); // Assuming class has a teacher object
+    setModalTeachers(
+      classItem.teachers.map((teacher) => ({
+        value: teacher._id,
+        label: `${teacher.firstName} ${teacher.lastName}`
+      }))
+    );
 
-    setModalGradeLevel(classItem.gradeLevel); // Assuming class has sections as an array
+    setModalGradeLevel(classItem.gradeLevel);
     setIsModalOpen(true);
   };
   
@@ -102,11 +104,11 @@ const AdminManageClassPage = () => {
     setSelectedSections(selectedOptions);
   };
 
-  const handleDeleteClass = (classId,selectedSchoolYear) => {
-    deleteClass(classId,selectedSchoolYear);
-  }
+  const handleDeleteClass = (classId, selectedSchoolYear) => {
+    deleteClass(classId, selectedSchoolYear);
+  };
 
-   const filterClasses = (classes) => {
+  const filterClasses = (classes) => {
     let filteredClasses = classes;
 
     // Apply search filter
@@ -145,7 +147,7 @@ const AdminManageClassPage = () => {
   };
 
   const sortClasses = (classes) => {
-    let sortedClasses = [...classes]; // Create a copy to avoid mutating original array
+    let sortedClasses = [...classes];
 
     // Apply sorting by class name
     if (sortByClassName === "Ascending") {
@@ -179,15 +181,15 @@ const AdminManageClassPage = () => {
     // Apply sorting by teacher name
     if (sortByTeacher === "Ascending") {
       sortedClasses = sortedClasses.sort((a, b) => {
-        const teacherA = `${a.teachers[0].firstName} ${a.teachers[0].lastName}`;
-        const teacherB = `${b.teachers[0].firstName} ${b.teachers[0].lastName}`;
+        const teacherA = a.teachers[0] ? `${a.teachers[0].firstName} ${a.teachers[0].lastName}` : '';
+        const teacherB = b.teachers[0] ? `${b.teachers[0].firstName} ${b.teachers[0].lastName}` : '';
         return teacherA.localeCompare(teacherB);
       });
     
     } else if (sortByTeacher === "Descending") {
       sortedClasses = sortedClasses.sort((a, b) => {
-        const teacherA = `${a.teachers[0].firstName} ${a.teachers[0].lastName}`;
-        const teacherB = `${b.teachers[0].firstName} ${b.teachers[0].lastName}`;
+        const teacherA = a.teachers[0] ? `${a.teachers[0].firstName} ${a.teachers[0].lastName}` : '';
+        const teacherB = b.teachers[0] ? `${b.teachers[0].firstName} ${b.teachers[0].lastName}` : '';
         return teacherB.localeCompare(teacherA);
       });
     }
@@ -200,52 +202,60 @@ const AdminManageClassPage = () => {
     return sortClasses(filteredClasses);
   };
 
+  // Get currently visible classes based on pagination
+  const getVisibleClasses = () => {
+    const processed = handleFilterAndSort();
+    
+    if (isShowingAll) {
+      return processed;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return processed.slice(startIndex, startIndex + itemsPerPage);
+  };
+
   const validateClassData = () => {
     if (!modalSubject.trim() || !modalGradeLevel || !modalSections.length || !modalTeachers.length) {
       toast.error("All fields are required.");
       return false;
     }
  
-    
-    if(currentClass){
+    if (currentClass) {
       // Extract relevant IDs from modalSections and currentClass.sections
-        const originalSectionIds = currentClass.sections.map((section) => section._id);
-        const currentSectionIds = modalSections.map((section) => section.value); // Use 'value' here
+      const originalSectionIds = currentClass.sections.map((section) => section._id);
+      const currentSectionIds = modalSections.map((section) => section.value);
 
-        // Check if the sections match
-        const sectionsMatch =
-          originalSectionIds.length === currentSectionIds.length &&
-          originalSectionIds.every(id => currentSectionIds.includes(id)) &&
-          currentSectionIds.every(id => originalSectionIds.includes(id));
+      // Check if the sections match
+      const sectionsMatch =
+        originalSectionIds.length === currentSectionIds.length &&
+        originalSectionIds.every(id => currentSectionIds.includes(id)) &&
+        currentSectionIds.every(id => originalSectionIds.includes(id));
 
-        // Extract relevant IDs from modalTeachers and currentClass.teachers
-        const originalTeacherIds = currentClass.teachers.map((teacher) => teacher._id);
-        const currentTeacherIds = modalTeachers.map((teacher) => teacher.value); // Use 'value' here
+      // Extract relevant IDs from modalTeachers and currentClass.teachers
+      const originalTeacherIds = currentClass.teachers.map((teacher) => teacher._id);
+      const currentTeacherIds = modalTeachers.map((teacher) => teacher.value);
 
-        // Check if the teachers match
-        const teachersMatch =
-          originalTeacherIds.length === currentTeacherIds.length &&
-          originalTeacherIds.every(id => currentTeacherIds.includes(id)) &&
-          currentTeacherIds.every(id => originalTeacherIds.includes(id));
+      // Check if the teachers match
+      const teachersMatch =
+        originalTeacherIds.length === currentTeacherIds.length &&
+        originalTeacherIds.every(id => currentTeacherIds.includes(id)) &&
+        currentTeacherIds.every(id => originalTeacherIds.includes(id));
 
-        // Check if everything matches
-        if (
-          modalSubject === currentClass.subjectName &&
-          modalGradeLevel === currentClass.gradeLevel &&
-          sectionsMatch &&
-          teachersMatch
-        ) {
-          toast.error("No changes detected.");
-          return false;
-        }
+      // Check if everything matches
+      if (
+        modalSubject === currentClass.subjectName &&
+        modalGradeLevel === currentClass.gradeLevel &&
+        sectionsMatch &&
+        teachersMatch
+      ) {
+        toast.error("No changes detected.");
+        return false;
+      }
     }
+  };
     
-  }
-    
-
   const handleSaveClass = () => {
-
-    if(validateClassData() === false){
+    if (validateClassData() === false) {
       return;
     }
 
@@ -270,18 +280,15 @@ const AdminManageClassPage = () => {
       };
   
       createClass(newClass);
-
     }
 
     closeModal();
   };
 
-  let fileInput = null; // Reference to the file input element
-
-
+  let fileInput = null;
 
   const handleImportClasses = (e) => {
-    const file = e.target.files[0]; // Get the file from input
+    const file = e.target.files[0];
     if (!file) {
       console.error("No file selected.");
       return;
@@ -294,9 +301,9 @@ const AdminManageClassPage = () => {
   
       const workbook = new Exceljs.Workbook();
       try {
-        await workbook.xlsx.load(data); // Load the data into the workbook
+        await workbook.xlsx.load(data);
   
-        const worksheet = workbook.getWorksheet(1); // Get the first worksheet
+        const worksheet = workbook.getWorksheet(1);
         if (!worksheet) {
           console.error("No worksheet found.");
           return;
@@ -304,64 +311,59 @@ const AdminManageClassPage = () => {
   
         const classes = [];
         worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber > 1) { // Skip the first row (header)
-            // Extract raw data from the row
+          if (rowNumber > 1) {
             const subjectName = row.getCell(1).value;
-            const gradeLevel = parseInt(row.getCell(2).value); // Assuming grade level is in column 2
-            const sectionNames = row.getCell(3).value ? row.getCell(3).value.split(";") : []; // Assuming sections are comma-separated
-            const teacherFullNames = row.getCell(4).value ? row.getCell(4).value.split(";").map(name => name.trim()) : []; // Assuming teacher full names are comma-separated
+            const gradeLevel = parseInt(row.getCell(2).value);
+            const sectionNames = row.getCell(3).value ? row.getCell(3).value.split(";") : [];
+            const teacherFullNames = row.getCell(4).value ? row.getCell(4).value.split(";").map(name => name.trim()) : [];
   
-            // Map section names to their _id values from the sections array
             const sectionsMapped = sectionNames.map(sectionName => {
               const trimmedSectionName = sectionName.trim();
-              // Find the section by name in the sections array and return the _id
               const section = sections.find(s => s.name === trimmedSectionName);
-              return section ? section._id : trimmedSectionName; // Use section id, or return name if not found
+              return section ? section._id : trimmedSectionName;
             });
   
-            // Map teacher full names to their IDs by creating full name from firstName and lastName
             const teachersMapped = teacherFullNames.map(fullName => {
-              // Find teacher by comparing the full name
               const teacher = Object.values(teachers).find(
                 (teacher) => `${teacher.firstName} ${teacher.lastName}` === fullName
               );
               
-              return teacher ? teacher._id : fullName; // Return the teacher's ID or the full name if not found
+              return teacher ? teacher._id : fullName;
             });
   
-            // Construct the class object
             const classesData = {
               subjectName: subjectName,
               gradeLevel: gradeLevel,
-              sections: sectionsMapped, // Array of section IDs
-              teachers: teachersMapped, // Array of teacher IDs
-              schoolYear: selectedSchoolYear, // Hardcoded school year, adjust as necessary
+              sections: sectionsMapped,
+              teachers: teachersMapped,
+              schoolYear: selectedSchoolYear,
             };
   
             classes.push(classesData);
           }
         });
   
-        createClassThroughImport(classes, selectedSchoolYear); // Call the store function to create classes
-  
-        // Reset the file input after processing
-        fileInput.value = null; // This resets the file input value
+        createClassThroughImport(classes, selectedSchoolYear);
+        fileInput.value = null;
   
       } catch (error) {
         console.error("Error reading the Excel file:", error);
       }
     };
   
-    reader.readAsArrayBuffer(file); // Read the file as an array buffer
+    reader.readAsArrayBuffer(file);
   };
 
   const handleDeleteAllClasses = () => {
-    
     if (window.confirm("Are you sure you want to delete all classes?")) {
       deleteAllClassesGivenSchoolYear(selectedSchoolYear);
     }
-  }
+  };
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSectionFilter, selectedTeacher, selectedGradeLevel, searchClassName]);
   
   return (
     <div>
@@ -400,7 +402,7 @@ const AdminManageClassPage = () => {
             <SearchFilter
               label="Search Class"
               value={searchClassName}
-              onChange={(value) => setSearchClassName(value)}
+              onChange={(value) => handleSearchClass(value)}
               placeholder="Enter class name..."
             />
           </div>
@@ -456,7 +458,7 @@ const AdminManageClassPage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {handleFilterAndSort().map((classItem) => (
+                    {getVisibleClasses().map((classItem) => (
                       <tr key={classItem._id}>
                         <td className="px-6 py-4 whitespace-nowrap">{classItem.subjectName}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{classItem.gradeLevel}</td>
@@ -487,6 +489,18 @@ const AdminManageClassPage = () => {
               </div>
             )}
 
+            {/* Pagination Component */}
+            {handleFilterAndSort().length > 0 && (
+              <Pagination
+                totalItems={handleFilterAndSort().length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                showAllOption={true}
+                isShowingAll={isShowingAll}
+                setIsShowingAll={setIsShowingAll}
+              />
+            )}
             
             <div className="mt-6">
               {/* Container for buttons */}
@@ -499,7 +513,7 @@ const AdminManageClassPage = () => {
                   Add New Class
                 </button>
 
-             {/* Import Classes Button */}
+                {/* Import Classes Button */}
                 <button className="w-full sm:w-auto">
                   <label className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 cursor-pointer w-full">
                     Import Classes
@@ -507,11 +521,10 @@ const AdminManageClassPage = () => {
                       type="file"
                       className="hidden"
                       onChange={handleImportClasses}
-                      ref={(input) => (fileInput = input)}  // Create a reference to the file input
+                      ref={(input) => (fileInput = input)}
                     />
                   </label>
                 </button>
-
 
                 {/* Delete Classes Button (visible only if classes exist) */}
                 {classes.length > 0 && (
@@ -524,11 +537,8 @@ const AdminManageClassPage = () => {
                 )}
               </div>
             </div>
-
           </div>
         </div>
-
-
       </div>
 
       {/* Modal for Adding/Editing Class */}
@@ -574,17 +584,16 @@ const AdminManageClassPage = () => {
                   isMulti
                   name="sections"
                   options={sections
-                    .filter((section) => section.gradeLevel === modalGradeLevel) // Filter based on gradeLevel
+                    .filter((section) => section.gradeLevel === modalGradeLevel)
                     .map((section) => ({
-                      value: section._id, // Unique identifier
-                      label: `Grade ${section.gradeLevel}-${section.name}`, // Display name
-                    })) || []} // Ensure options is always an array
+                      value: section._id,
+                      label: `Grade ${section.gradeLevel}-${section.name}`,
+                    })) || []}
                   value={modalSections}
                   onChange={handleModalSectionChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
                 />
-
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1">Teachers</label>
@@ -592,18 +601,15 @@ const AdminManageClassPage = () => {
                   isMulti
                   name="teachers"
                   options={teachers.map((teacher) => ({
-                    value: teacher._id, // Unique identifier
-                    label: `${teacher.firstName} ${teacher.lastName}`, // Display name
-                  })) || []} // Ensure options is always an array
+                    value: teacher._id,
+                    label: `${teacher.firstName} ${teacher.lastName}`,
+                  })) || []}
                   value={modalTeachers}
                   onChange={(selectedOptions) => setModalTeachers(selectedOptions)}
                   className="react-select-container"
                   classNamePrefix="react-select"
                 />
-
               </div>
-   
-              
             </div>
             <div className="mt-6 flex justify-end space-x-4">
               <button
