@@ -23,49 +23,12 @@ const StudentGradesViewPage = () => {
     { value: "Q4", label: "Quarter 4" },
   ];
 
-  // Dummy enrolled classes data
-  const dummyEnrolledClasses = [
-    {
-      _id: "1",
-      subjectName: "Mathematics",
-      gradeLevel: "Grade 11",
-    },
-    {
-      _id: "2",
-      subjectName: "Science",
-      gradeLevel: "Grade 11",
-    },
-    {
-      _id: "3",
-      subjectName: "English",
-      gradeLevel: "Grade 11",
-    },
-  ];
-
-  // Dummy grades data
-  const dummyGradesData = [
-    {
-      classId: "1",
-      className: "Mathematics",
-      grades: { Q1: "92", Q2: "88", Q3: "95", Q4: "90", average: "91.25" },
-    },
-    {
-      classId: "2",
-      className: "Science",
-      grades: { Q1: "85", Q2: "90", Q3: "87", Q4: "92", average: "88.5" },
-    },
-    {
-      classId: "3",
-      className: "English",
-      grades: { Q1: "90", Q2: "93", Q3: "91", Q4: "89", average: "90.75" },
-    },
-  ];
 
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedQuarter, setSelectedQuarter] = useState("all");
-  const [enrolledClasses, setEnrolledClasses] = useState(dummyEnrolledClasses);
-  const [gradesData, setGradesData] = useState(dummyGradesData);
+  const [enrolledClasses, setEnrolledClasses] = useState({});
+  const [gradesData, setGradesData] = useState({});
 
   const { classes, getEnrolledClasses, getEnrolledClassesGrades, grades, isGettingGrades } = useStudentStore();
   const { authUser } = useAuthStore();

@@ -110,6 +110,7 @@ const addStudentToSection =  async (req, res) => {
               model: 'Student' // Ensure correct model reference
             }
         });
+
         res.status(200).json(classes);
     } catch (error) {
         res.status(404).json({ message: error.message });
@@ -149,6 +150,8 @@ const addStudentToSection =  async (req, res) => {
                 [grade.gradingPeriod]: grade.gradeValue, // ✅ Dynamically update based on gradingPeriod
             };
         });
+
+
 
         res.status(200).json(gradeMap);
 
