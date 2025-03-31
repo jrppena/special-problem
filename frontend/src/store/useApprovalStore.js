@@ -23,7 +23,7 @@ export const useApprovalStore = create((set, get) => ({
       let url = "/admin/pending-users";
       
       // Add pagination parameters if not showing all
-      if (!isShowingAll) {
+      if (!isShowingAll) {  
         url += `?page=${currentPage}&limit=${itemsPerPage}`;
       } else {
         url += "?showAll=true";
