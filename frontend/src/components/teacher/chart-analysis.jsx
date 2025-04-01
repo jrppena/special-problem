@@ -1,20 +1,33 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Pagination from "../../components/pagination";
+import { ChevronLeft, ChevronRight, List } from "lucide-react";
 
 const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType }) => {
+  // Add state for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isShowingAll, setIsShowingAll] = useState(false);
+  const itemsPerPage = 3; // Number of trends to show per page
+  
+  // Reset pagination when chart data changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setIsShowingAll(false);
+  }, [chartData, dataType, selectedQuarter]);
+  
   if (!chartData || chartData.length === 0) return null;
 
   // Extract insights from the data
   const generateInsights = () => {
     // For single section performance across all quarters
     if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
-      const subjects = Object.keys(chartData[0]).filter(key => key !== "name");
+      const students = Object.keys(chartData[0]).filter(key => key !== "name");
       
-      // Calculate trend for each subject
-      const trends = subjects.map(subject => {
-        const values = chartData.map(item => parseFloat(item[subject]) || 0);
+      // Calculate trend for each student
+      const trends = students.map(student => {
+        const values = chartData.map(item => parseFloat(item[student]) || 0);
         const validValues = values.filter(val => val > 0);
         
-        if (validValues.length < 2) return { subject, trend: "insufficient" };
+        if (validValues.length < 2) return { student, trend: "insufficient" };
         
         const firstVal = validValues[0];
         const lastVal = validValues[validValues.length - 1];
@@ -26,8 +39,9 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
         else if (percentChange < -5) trend = "declining";
         else trend = "stable";
         
+        
         return { 
-          subject, 
+          student, 
           trend, 
           percentChange, 
           highestQuarter: chartData[values.indexOf(Math.max(...values))].name,
@@ -133,7 +147,7 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
       // Check if we have enough valid data - use AND instead of OR to be more lenient
       if (sectionsWithValidTrends.length === 0 && sectionsWithValidAverage.length === 0) {
         return {
-          type: "overallTrends",
+          type: " ",
           noValidData: true,
           message: "Insufficient valid grade data to analyze trends."
         };
@@ -224,17 +238,27 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
     
     switch (insights.type) {
       case "quarterTrends":
+        // Get total number of trends
+        const totalTrends = insights.trends.length;
+        
+        // Get current page trends
+        const currentTrends = isShowingAll 
+          ? insights.trends 
+          : insights.trends.slice(
+              (currentPage - 1) * itemsPerPage,
+              currentPage * itemsPerPage
+            );
+        
         return (
           <div>
             <h4 className="text-lg font-medium mb-2">Performance Trends</h4>
             <div className="space-y-4">
-              {insights.trends.map(trend => (
-                <div key={trend.subject} className="border-l-4 px-4 py-2" 
-                     style={{ 
-                       borderColor: trend.trend === "improving" ? "#10B981" : 
-                                   trend.trend === "declining" ? "#EF4444" : "#F59E0B" 
-                     }}>
-                  <h5 className="font-medium mb-1">{trend.subject}</h5>
+              {currentTrends.map(trend => (
+                <div key={trend.student} className={`border-l-4 px-4 py-2 
+                  ${trend.trend === "improving" ? 'border-green-500' :
+                    trend.trend === "declining" ? 'border-red-500' : 'border-yellow-400'}`}>
+                
+                  <h5 className="font-medium mb-1">{trend.student}</h5>
                   {trend.trend === "insufficient" ? (
                     <p>Not enough data to determine a trend.</p>
                   ) : (
@@ -258,6 +282,19 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
                 </div>
               ))}
             </div>
+            
+            {/* Add pagination component */}
+            {totalTrends > itemsPerPage && (
+              <Pagination
+                totalItems={totalTrends}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                showAllOption={true}
+                isShowingAll={isShowingAll}
+                setIsShowingAll={setIsShowingAll}
+              />
+            )}
           </div>
         );
         
