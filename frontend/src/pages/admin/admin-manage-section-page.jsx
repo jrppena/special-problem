@@ -5,17 +5,16 @@ import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
 import SearchFilter from "../../components/search-filter";
 import EnrolledStudentsFilter from "../../components/enrolled-students-filter";
-
+import Pagination from "../../components/pagination"; // Import the Pagination component
 
 import { useAuthStore } from "../../store/useAuthStore";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
 
 import toast from "react-hot-toast";
-import { Pen, Trash2 } from 'lucide-react'; // Correct import for lucide-react icons
+import { Pen, Trash2 } from 'lucide-react';
 import { schoolYears, gradeLevels } from "../../constants";
 import Select from "react-select";
-
 
 const AdminManageSectionPage = () => {
   const { authUser } = useAuthStore();
@@ -27,12 +26,12 @@ const AdminManageSectionPage = () => {
     fetchAvailableAdvisers, 
     createSection,
     editSection,
-    deleteSection  // Added deletion function from store
+    deleteSection
   } = useSectionStore();
 
   const { teachers, getTeachers } = useTeacherStore();
 
-  // For filtering, grade level is stored as a number; null means "No Filter"
+  // For filtering
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(
     schoolYears.find((year) => year.isCurrent).name
   );
@@ -44,11 +43,15 @@ const AdminManageSectionPage = () => {
   const [sortByAdviser, setSortByAdviser] = useState("No Filter");
   const [sortBySection, setSortBySection] = useState("No Filter");
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isShowingAll, setIsShowingAll] = useState(false);
+
   // Modal states for adding/editing a section
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState(null);
   const [modalSectionName, setModalSectionName] = useState("");
-  // modalGradeLevel is stored as a number; for add mode we default to the first grade's value.
   const [modalGradeLevel, setModalGradeLevel] = useState(
     gradeLevels[0]?.value || null
   );
@@ -69,17 +72,22 @@ const AdminManageSectionPage = () => {
     getTeachers();
   }, [getTeachers]);
 
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedGradeLevel, selectedAdviser, searchSectionName, sortByGradeLevel, sortByAdviser, sortBySection]);
+
   const handleSliderChange = (value) => {
     setStudentCount(value);
   };
 
   const handleSearchSection = (value) => {
     setSearchSection(value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   // Open modal for adding a section.
   const openAddSectionModal = () => {
-
     if(availableAdvisers.length === 0){
       toast.error("Cannot add new section: No advisers available");
       return
@@ -87,7 +95,7 @@ const AdminManageSectionPage = () => {
     setCurrentSection(null);
     setModalSectionName("");
     setModalGradeLevel(gradeLevels[0]?.value || null);
-
+    setModalAdvisers(null);
     setIsModalOpen(true);
   };
 
@@ -96,8 +104,6 @@ const AdminManageSectionPage = () => {
     setCurrentSection(section);
     setModalSectionName(section.name);
     setModalGradeLevel(section.gradeLevel);
-    // Set modal advisers for editing based on the section.advisers]
-    console.log(section.advisers);
     setModalAdvisers(
       section.advisers.map((adviser) => ({
         value: adviser._id,
@@ -137,13 +143,11 @@ const AdminManageSectionPage = () => {
   };
 
   const handleSaveSection = () => {
-
-   
     if (!validateSectionData()) return;
 
     if (currentSection) {
       const originalAdviserIds = currentSection.advisers.map((adviser) => adviser._id);
-      const currentAdviserIds = modalAdvisers.map((adviser) => adviser.value); // Use 'value' here
+      const currentAdviserIds = modalAdvisers.map((adviser) => adviser.value);
 
       const advisersMatch = 
         originalAdviserIds.length === currentAdviserIds.length &&
@@ -206,7 +210,7 @@ const AdminManageSectionPage = () => {
       : null;
 
   // Compute filtered and sorted sections.
-  const computedSections = useMemo(() => {
+  const filteredSections = useMemo(() => {
     let filtered = sections;
 
     if (selectedGradeLevel !== null) {
@@ -218,7 +222,6 @@ const AdminManageSectionPage = () => {
       filtered = filtered.filter((section) => {
         if (!section.advisers || section.advisers.length === 0) return false;
     
-        // Check if any adviser in the section's advisers matches the selectedAdviser
         return section.advisers.some((adviser) => {
           const adviserName = adviser.firstName + " " + adviser.lastName;
           return adviserName === selectedAdviser;
@@ -247,12 +250,10 @@ const AdminManageSectionPage = () => {
             ? aAdviser.localeCompare(bAdviser)
             : bAdviser.localeCompare(aAdviser);
         } else if (activeSort.field === "gradeLevel") {
-          // Compare numerically.
           return activeSort.order === "Ascending"
             ? a.gradeLevel - b.gradeLevel
             : b.gradeLevel - a.gradeLevel;
         } else {
-          // For other fields, convert to strings and compare lexicographically.
           const aField = a[activeSort.field] || "";
           const bField = b[activeSort.field] || "";
           return activeSort.order === "Ascending"
@@ -270,6 +271,16 @@ const AdminManageSectionPage = () => {
     searchSectionName,
     activeSort,
   ]);
+
+  // Get paginated data
+  const paginatedSections = useMemo(() => {
+    if (isShowingAll) {
+      return filteredSections;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSections.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSections, currentPage, itemsPerPage, isShowingAll]);
 
   return (
     <div>
@@ -373,72 +384,81 @@ const AdminManageSectionPage = () => {
 
           <div className="bg-white p-6 rounded-lg shadow flex-1 overflow-x-auto">
             <h3 className="text-xl font-semibold mb-4">Sections Table</h3>
-            {computedSections.length === 0 ? (
+            {filteredSections.length === 0 ? (
               <div className="text-center text-gray-500">No sections found</div>
             ) : (
               <div className="overflow-x-auto max-w-full">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Grade Level
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Section Name
-                    </th>
-
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Adviser/s
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Students Enrolled
-                    </th>
-                    
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {
-                  computedSections.map((section) => (
-                    <tr key={section.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {section.gradeLevel}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {section.name}
-                      </td>
-
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {section.advisers.map((adviser) => adviser.firstName + " " + adviser.lastName).join(", ")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {section.students.length}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
-                        <button
-                          className="flex items-center gap-2 text-blue-500 hover:underline"
-                          onClick={() => openEditSectionModal(section)}
-                        >
-                          <Pen className="w-5 h-5" />
-                          Edit
-                        </button>
-                        <button
-                          className="flex items-center gap-2 text-red-500 hover:underline"
-                          onClick={() => handleDeleteSection(section)}
-                        >
-                          <Trash2 className="w-5 h-5" />
-                          Delete
-                        </button>
-                      </td>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Grade Level
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Section Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Adviser/s
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Students Enrolled
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedSections.map((section) => (
+                      <tr key={section.id || section._id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {section.gradeLevel}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {section.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {section.advisers.map((adviser) => adviser.firstName + " " + adviser.lastName).join(", ")}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {section.students.length}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
+                          <button
+                            className="flex items-center gap-2 text-blue-500 hover:underline"
+                            onClick={() => openEditSectionModal(section)}
+                          >
+                            <Pen className="w-5 h-5" />
+                            Edit
+                          </button>
+                          <button
+                            className="flex items-center gap-2 text-red-500 hover:underline"
+                            onClick={() => handleDeleteSection(section)}
+                          >
+                            <Trash2 className="w-5 h-5" />
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
+            
+            {/* Pagination Component */}
+            {filteredSections.length > 0 && (
+              <Pagination 
+                totalItems={filteredSections.length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                showAllOption={true}
+                isShowingAll={isShowingAll}
+                setIsShowingAll={setIsShowingAll}
+              />
+            )}
+            
             <div className="mt-6">
               <button
                 onClick={openAddSectionModal}
@@ -489,20 +509,20 @@ const AdminManageSectionPage = () => {
                   }
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
                 />
-            </div>
+              </div>
               <Select
-              isMulti
-              options={availableAdvisers.map((adviser) => ({
-                value: adviser._id,
-                label: adviser.firstName + " " + adviser.lastName,
-              }))} 
-              value={modalAdvisers}
-              onChange={setModalAdvisers}
-              placeholder={availableAdvisers.length === 0 ? "No advisers available" : "Select adviser"}
-              isDisabled={availableAdvisers.length === 0}
-              className="react-select-container"
-              classNamePrefix="react-select"
-            />
+                isMulti
+                options={availableAdvisers.map((adviser) => ({
+                  value: adviser._id,
+                  label: adviser.firstName + " " + adviser.lastName,
+                }))} 
+                value={modalAdvisers}
+                onChange={setModalAdvisers}
+                placeholder={availableAdvisers.length === 0 ? "No advisers available" : "Select adviser"}
+                isDisabled={availableAdvisers.length === 0}
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
             </div>
             <div className="mt-6 flex justify-end space-x-4">
               <button

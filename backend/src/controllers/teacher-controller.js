@@ -75,27 +75,40 @@ const addStudentToSection =  async (req, res) => {
       }
   };
 
-  const removeStudentFromSection =  async (req, res) => {
+  const removeStudentFromSection = async (req, res) => {
     const { sectionId, studentId } = req.body;
   
     try {
-        // Add students to the section in the database
-        const updatedSection = await Section.findByIdAndUpdate(
-          sectionId,
-          { $pull: { students: studentId } },
-          { new: true } // Return the updated document
-        ).populate('students'); // Populate the students if needed
-
-        const grade = await Grade.find({ student: studentId, schoolYear: updatedSection.schoolYear });
-        if(grade) {
-            res.status(200).json({ success: false, message: 'Cannot remove student from section. Student has grades' });
-        }
-    
-        res.json({ success: true, updatedSection });
-      } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to remove student from section' });
+      const section = await Section.findById(sectionId).populate('students');
+      if (!section) {
+        return res.status(404).json({ success: false, message: 'Section not found' });
       }
-  }
+      
+      const studentExistsInSection = section.students.some(student => student._id.toString() === studentId.toString());
+      if (!studentExistsInSection) {
+        return res.status(400).json({ success: false, message: 'Student not found in this section' });
+      }
+  
+      // Check if the student has grades in the current school year
+      const grade = await Grade.find({ student: studentId, schoolYear: sectionId.schoolYear });
+      if (grade && grade.length > 0) {
+        return res.status(400).json({ success: false, message: 'Cannot remove student from section. Student has grades' });
+      }
+  
+      // Remove the student from the section's students array
+      section.students = section.students.filter(student => student._id.toString() !== studentId.toString());
+  
+      // Save the updated section
+      const updatedSection = await section.save();
+      
+      // Populate the students field
+      await updatedSection.populate('students');
+  
+      return res.status(200).json({ success: true, updatedSection });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: 'Failed to remove student from section' });
+    }
+  };
 
   const getAssignedClasses = async (req, res) => {
     const userId = req.query.userId;

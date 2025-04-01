@@ -68,13 +68,22 @@ export const useTeacherStore = create((set) => ({
 
     removeStudentFromSection: async (data) => {
         try {
-        const response = await axiosInstance.delete('/teacher/remove/student-from-section', {data});
-        toast.success('Student removed from section');
-        return(response.data.updatedSection);
+            const response = await axiosInstance.delete('/teacher/remove/student-from-section', {data});
+
+            if(response.message){
+                toast.error(response.message);
+                return;
+            }
+            toast.success('Student removed from section');
+            return(response.data.updatedSection);
         
         } catch (error) {
-        console.error('Error in removeStudentFromSection: ', error);
-        toast.error('Failed to remove student from section');
+            console.error('Error in removeStudentFromSection: ', error);
+            if(error.response?.data?.message){
+                toast.error(error.response.data.message);
+                return;
+            }
+            toast.error('Failed to remove student from section');
         }
     },
 
