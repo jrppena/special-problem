@@ -6,7 +6,15 @@ import Student from '../models/student.model.js';
 const fetchClasses = async (req, res) => {
     const { schoolYear } = req.params;
     try {
-        const classes = await Class.find({ schoolYear }).populate('sections').populate('teachers');
+        const classes = await Class.find({ schoolYear })
+        .populate({
+          path: 'sections',
+          populate: {
+            path: 'students', // Populate the students array in each section
+            model: 'Student', // Reference the Student model
+          }
+        })
+        .populate('teachers'); // Populate teachers as well
 
         res.status(200).json(classes);
     } catch (error) {
