@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, MinusCircle } from 'lucide-react';
+import Pagination from '../../components/pagination';
 
 const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isShowingAll, setIsShowingAll] = useState(false);
+  const itemsPerPage = 3; // Show 3 trend items per page
+  
   const analysis = useMemo(() => {
     if (!chartData || chartData.length === 0) return null;
 
@@ -386,6 +391,16 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
     }
   };
 
+  // Get paginated trends based on current page and "show all" toggle
+  const getPaginatedTrends = () => {
+    if (isShowingAll) {
+      return analysis.trends;
+    }
+    
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return analysis.trends.slice(startIndex, startIndex + itemsPerPage);
+  };
+
   // Function to determine what to display in the analysis based on data type
   const renderAnalysisSections = () => {
     if (dataType === "subjectsInOneQuarter") {
@@ -466,7 +481,7 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
           
           {analysis.trends.length > 0 ? (
             <div className="space-y-4">
-              {analysis.trends.map((trend, index) => (
+              {getPaginatedTrends().map((trend, index) => (
                 <div key={index} className="border rounded-md p-3">
                   <div className="flex items-center mb-2">
                     {renderTrendIcon(trend.trendDirection)}
@@ -498,6 +513,18 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
                 ? "Not enough data to show subject trends. Need grades from multiple quarters."
                 : "Not enough data to show quarterly trends. Need grades from multiple quarters."}
             </p>
+          )}
+          
+          {/* Only show pagination if there are more than itemsPerPage trends */}
+          {analysis.trends.length > itemsPerPage && (
+            <Pagination
+              totalItems={analysis.trends.length}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              isShowingAll={isShowingAll}
+              setIsShowingAll={setIsShowingAll}
+            />
           )}
         </div>
       </div>
