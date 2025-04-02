@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import Dropdown from "../../components/drop-down";
+import HonorsList from "./honors-list"; // Import the new HonorsList component
 
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -22,7 +23,6 @@ const StudentGradesViewPage = () => {
     { value: "Q3", label: "Quarter 3" },
     { value: "Q4", label: "Quarter 4" },
   ];
-
 
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
   const [selectedClass, setSelectedClass] = useState("all");
@@ -136,92 +136,112 @@ const StudentGradesViewPage = () => {
             <p className="text-gray-500">Loading grades...</p>
           </div>
         ) : (
-          <div className="bg-white p-6 rounded-lg shadow mt-5">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {selectedClass === "all" && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Class Name
-                      </th>
-                    )}
-                    {selectedQuarter === "all" ? (
-                      ["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                        <th key={quarter} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          {quarter}
+          <>
+            <div className="bg-white p-6 rounded-lg shadow mt-5">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {selectedClass === "all" && (
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Class Name
                         </th>
-                      ))
-                    ) : (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {selectedQuarter}
-                      </th>
-                    )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredGradesData.map((classGrade) => (
-                    <tr key={classGrade.classId}>
-                      {selectedClass === "all" && (
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                          {classGrade.className}
-                        </td>
                       )}
                       {selectedQuarter === "all" ? (
                         ["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                          <td key={quarter} className="px-6 py-4 whitespace-nowrap">
-                            {classGrade.grades[quarter] || "-"}
-                          </td>
+                          <th key={quarter} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            {quarter}
+                          </th>
                         ))
                       ) : (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {classGrade.grades[selectedQuarter] || "-"}
-                        </td>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          {selectedQuarter}
+                        </th>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap">{classGrade.average || "-"}</td>
+                      {selectedQuarter === "all" && (
+
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                      )}
                     </tr>
-                  ))}
-                </tbody>
-                {/* Add footer with averages */}
-                {selectedClass === "all" && (
-                  <tfoot>
-                    <tr className="bg-gray-50">
-                      {selectedClass === "all" && (
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                          Average
-                        </td>
-                      )}
-                      {selectedQuarter === "all" ? (
-                        ["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
-                          <td
-                            key={quarter}
-                            className="px-6 py-4 whitespace-nowrap font-semibold"
-                          >
-                            {calculateQuarterAverage(quarter)}
+                  </thead>
+                  
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredGradesData.map((classGrade) => (
+                      <tr key={classGrade.classId}>
+                        {selectedClass === "all" && (
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                            {classGrade.className}
                           </td>
-                        ))
-                      ) : (
-                        <td className="px-6 py-4 whitespace-nowrap font-semibold">
-                          {calculateQuarterAverage(selectedQuarter)}
-                        </td>
+                        )}
+                        {selectedQuarter === "all" ? (
+                          ["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+                            <td key={quarter} className="px-6 py-4 whitespace-nowrap">
+                              {classGrade.grades[quarter] || "-"}
+                            </td>
+                          ))
+                        ) : (
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {classGrade.grades[selectedQuarter] || "-"}
+                          </td>
+                        )}
+                      {selectedQuarter === "all" && (
+                        <td className="px-6 py-4 whitespace-nowrap">{classGrade.average || "-"}</td>
+                      )}                      
+                      </tr>
+                    ))}
+                  </tbody>
+                  {/* Add footer with averages */}
+                  {selectedClass === "all" && (
+                    <tfoot>
+                      <tr className="bg-gray-50">
+                        {selectedClass === "all" && (
+                          <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                            Average
+                          </td>
+                        )}
+                        {selectedQuarter === "all" ? (
+                          ["Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+                            <td
+                              key={quarter}
+                              className="px-6 py-4 whitespace-nowrap font-semibold"
+                            >
+                              {calculateQuarterAverage(quarter)}
+                            </td>
+                          ))
+                        ) : (
+                          <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                            {calculateQuarterAverage(selectedQuarter)}
+                          </td>
+                        )}
+                          {selectedQuarter === "all" && (
+                            <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                              {filteredGradesData.length > 0
+                                ? (
+                                    (filteredGradesData.reduce(
+                                      (sum, classGrade) => sum + parseFloat(classGrade.average || 0),
+                                      0
+                                    ) / filteredGradesData.length).toFixed(2)
+                                  )
+                                : "-"}
+                            </td>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap font-semibold">
-                        {filteredGradesData.length > 0
-                          ? (
-                              filteredGradesData.reduce(
-                                (sum, classGrade) => sum + parseFloat(classGrade.average),
-                                0
-                              ) / filteredGradesData.length
-                            ).toFixed(2)
-                          : "-"}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
+
+                     
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Honors List component */}
+            {filteredGradesData.length > 0 && selectedClass === "all" && (
+              <HonorsList 
+                grades={filteredGradesData} 
+                selectedQuarter={selectedQuarter}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
