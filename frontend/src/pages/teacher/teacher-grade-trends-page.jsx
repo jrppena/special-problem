@@ -5,7 +5,6 @@ import ChartFilters from "../../components/teacher/chart-filters";
 import GradeChart from "../../components/teacher/grade-chart";
 import TeacherChartAnalysis from "../../components/teacher/chart-analysis";
 import ChartToolTip from "../../components/teacher/chart-tool-tip";
-
 import NoDataDisplay from "../../components/student/no-data-display";
 
 import { useTeacherStore } from "../../store/useTeacherStore";
@@ -24,6 +23,7 @@ const TeacherGradeTrendsPage = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("all");
+  const [selectedStudents, setSelectedStudents] = useState([]);
   
   // State variables for display data - these will only update after Generate Chart is clicked
   const [displayChartType, setDisplayChartType] = useState("line");
@@ -31,6 +31,7 @@ const TeacherGradeTrendsPage = () => {
   const [displaySubject, setDisplaySubject] = useState(null);
   const [displaySection, setDisplaySection] = useState(null);
   const [displayQuarter, setDisplayQuarter] = useState("all");
+  const [displayStudents, setDisplayStudents] = useState([]);
   
   const [chartData, setChartData] = useState([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -83,26 +84,14 @@ const TeacherGradeTrendsPage = () => {
     }
   }, [assignedClasses]);
 
-  // Auto-select best chart type based on data selection
-  // This only affects the filter state, not what's displayed
+  // Reset selected students when section changes
   useEffect(() => {
-    if (dataType && selectedQuarter) {
-      // Choose the best chart type based on data type and quarter selection
-      if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
-        // Line chart is best for showing performance trends over time for a single section
-        setChartType("line");
-      } else if (dataType === "sectionsPerformance" && selectedQuarter === "all") {
-        // Area chart is good for comparing multiple sections across all quarters
-        setChartType("area");
-      } else if (dataType === "sectionsPerformance" && selectedQuarter !== "all") {
-        // Bar chart is best for comparing sections in a specific quarter
-        setChartType("bar");
-      } else if (dataType === "singleSectionPerformance" && selectedQuarter !== "all") {
-        // For single section in a specific quarter, bar chart works well
-        setChartType("bar");
-      }
+    if (selectedSection && selectedSection.students) {
+      setSelectedStudents(selectedSection.students.map(student => student._id));
+    } else {
+      setSelectedStudents([]);
     }
-  }, [dataType, selectedQuarter]);
+  }, [selectedSection]);
 
   // Generate chart data using the backend
   const generateChartData = async () => {
@@ -127,7 +116,8 @@ const TeacherGradeTrendsPage = () => {
           selectedSubject._id,
           selectedQuarter,
           selectedSection,
-          dataType
+          dataType,
+          selectedStudents // Pass selected students to the API
         );
       } else if (dataType === "sectionsPerformance") {
         response = await getChartData(
@@ -152,6 +142,7 @@ const TeacherGradeTrendsPage = () => {
       setDisplaySubject(selectedSubject);
       setDisplaySection(selectedSection);
       setDisplayQuarter(selectedQuarter);
+      setDisplayStudents([...selectedStudents]);
       
     } catch (error) {
       console.error("Error generating chart data: ", error);
@@ -183,6 +174,8 @@ const TeacherGradeTrendsPage = () => {
           quarterOptions={quarterOptions}
           selectedQuarter={selectedQuarter}
           setSelectedQuarter={setSelectedQuarter}
+          selectedStudents={selectedStudents}
+          setSelectedStudents={setSelectedStudents}
           generateChartData={generateChartData}
         />
 
@@ -203,6 +196,10 @@ const TeacherGradeTrendsPage = () => {
                     ` - ${displaySection.gradeLevel}-${displaySection.name}`
                   }
                   {displayQuarter !== "all" && ` (${quarterOptions.find(q => q.value === displayQuarter)?.label})`}
+                  {displayDataType === "singleSectionPerformance" && displayQuarter === "all" && displayStudents.length > 0 && 
+                    displayStudents.length < displaySection?.students?.length && 
+                    ` (${displayStudents.length} students filtered)`
+                  }
                 </h3>
               </div>
               

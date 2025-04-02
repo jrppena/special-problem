@@ -3,14 +3,9 @@ import {
   LineChart,
   BarChart,
   AreaChart,
-  RadarChart,
   Line,
   Bar,
   Area,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,50 +35,6 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
     return colors[(index * step) % colors.length];
   };
   
-  // Check if radar chart is compatible with the data
-  const isRadarCompatible = () => {
-    // Get available quarters in the data
-    const quarters = Object.keys(data[0]).filter(key => 
-      key !== "name" && key.startsWith("Q")
-    );
-    
-    // If we're comparing sections but only have one quarter of data,
-    // radar chart doesn't make sense
-    if (quarters.length <= 1 && chartType === "radar" && dataType === "sectionsPerformance") {
-      return false;
-    }else if(chartType === "radar" && dataType === "singleSectionPerformance"){
-      // Simply check if we have more than one quarter in the data array
-      if (data[0].name != "Q1" && data[1].name != "Q2" && data[2].name != "Q3" && data[3].name != "Q4")  {
-        return false;
-      }
-    }
-    
-    return true;
-  };
-  
-  // If radar chart is not compatible, show error message
-  if (chartType === "radar" && !isRadarCompatible()) {
-    {console.log("Radar chart not compatible")}
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <div className="flex items-center justify-center h-full w-full flex-col">
-          <div className="text-red-600 text-xl font-medium mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Chart Type Not Compatible
-          </div>
-          <p className="text-gray-700 text-center max-w-md">
-            Radar charts require data from multiple quarters when comparing sections. 
-            Please select "All Quarters" or choose a different chart type.
-          </p>
-        </div>
-      </ResponsiveContainer>
-    );
-  }
-
-  // For most charts, use the original data structure
-  if (chartType !== "radar") {
     // Get keys for chart (exclude 'name' which is used for x-axis)
     const dataKeys = Object.keys(data[0]).filter(key => key !== "name");
     
@@ -222,71 +173,7 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
       default:
         return null;
     }
-  } else {
-    // For radar chart, transform the data structure 
-    // We need to transpose the data so quarters are categories around the radar
-    const transformDataForRadar = () => {
-      const result = [];
-      const sections = data.map(item => item.name);
-      const quarters = Object.keys(data[0]).filter(key => key !== "name");
-      
-      // Create one entry for each quarter
-      quarters.forEach(quarter => {
-        const entry = { name: quarter };
-        
-        // Add each section as a property
-        sections.forEach(section => {
-          const sectionData = data.find(item => item.name === section);
-          entry[section] = sectionData[quarter];
-        });
-        
-        result.push(entry);
-      });
-      
-      return result;
-    };
-    
-    const radarData = transformDataForRadar();
-    const sectionKeys = data.map(item => item.name);
-    
-    // Calculate domain for radar chart
-    const getRadarDomain = () => {
-      let minGrade = 100;
-      radarData.forEach(item => {
-        sectionKeys.forEach(key => {
-          const value = parseFloat(item[key]);
-          if (!isNaN(value) && value < minGrade && value > 0) {
-            minGrade = value;
-          }
-        });
-      });
-      const lowerBound = Math.max(0, Math.floor(minGrade / 5) * 5 - 5);
-      return [lowerBound, 100];
-    };
-    const radarDomain = getRadarDomain();
-    
-    return (
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart outerRadius={90} data={radarData}>
-          <PolarGrid />
-          <PolarAngleAxis dataKey="name" />
-          <PolarRadiusAxis angle={30} domain={radarDomain} />
-          <Tooltip />
-          <Legend wrapperStyle={{ position: 'relative', marginTop: '20px' }} />
-          {sectionKeys.map((key, index) => (
-            <Radar
-              key={key}
-              name={key}
-              dataKey={key}
-              stroke={getColor(index)}
-              fill={getColor(index)}
-              fillOpacity={0.3}
-            />
-          ))}
-        </RadarChart>
-      </ResponsiveContainer>
-    );
-  }
+  
 };
 
 export default TeacherGradeChart;

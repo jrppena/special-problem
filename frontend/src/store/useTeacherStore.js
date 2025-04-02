@@ -123,20 +123,29 @@ export const useTeacherStore = create((set) => ({
         }
     },
 
-    getChartData: async (classId, gradingPeriod, section, dataType) => {
+    getChartData: async (classId, gradingPeriod, section, dataType, selectedStudents = []) => {
         try {
-          // If single section, pass section._id; if sections performance, section can be null
-          const sectionId = dataType === "singleSectionPerformance" && section ? section._id : null;
-          const response = await axiosInstance.get('/teacher/get/chart-data', {
-            params: { classId, gradingPeriod, dataType, sectionId }
-          });
+          // Build the base query params
+          const params = { classId, gradingPeriod, dataType };
+          
+          // If single section, pass section._id
+          if (dataType === "singleSectionPerformance" && section) {
+            params.sectionId = section._id;
+            
+            // Add selected students to query if provided and not empty
+            if (selectedStudents && selectedStudents.length > 0) {
+              params.studentIds = JSON.stringify(selectedStudents);
+            }
+          }
+          
+          const response = await axiosInstance.get('/teacher/get/chart-data', { params });
           return response.data;
         } catch (error) {
           console.error('Error in getChartData: ', error);
           toast.error('Failed to fetch chart data');
           return null;
         }
-      },
+    },
 
       getSpecificStudentGrades: async (studentId, sectionId, schoolYear) => {
         try {

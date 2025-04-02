@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Dropdown from "../drop-down";
+import StudentFilter from "./student-filter";
 
 const ChartFilters = ({
   schoolYears,
@@ -17,8 +18,14 @@ const ChartFilters = ({
   quarterOptions,
   selectedQuarter,
   setSelectedQuarter,
+  selectedStudents,
+  setSelectedStudents,
   generateChartData
 }) => {
+  const [studentFilterEnabled, setStudentFilterEnabled] = useState(false);
+  const [hasFilterError, setHasFilterError] = useState(false);
+  const [validationError, setValidationError] = useState("");
+
   useEffect(() => {
     if (assignedClasses.length > 0 && !selectedSubject) {
       setSelectedSubject(assignedClasses[0]);
@@ -57,11 +64,36 @@ const ChartFilters = ({
       setDataType(selected.value);
       if (selected.value === "sectionsPerformance") {
         setSelectedSection(null);
+        setStudentFilterEnabled(false);
       } else if (selected.value === "singleSectionPerformance" && selectedSubject?.sections?.length > 0) {
         setSelectedSection(selectedSubject.sections[0]);
       }
     }
   };
+
+  // Handle chart generation with validation
+  const handleGenerateChart = () => {
+    setValidationError("");
+    
+    // Validate that students are selected if student filtering is enabled
+    if (dataType === "singleSectionPerformance" && 
+        selectedQuarter === "all" && 
+        studentFilterEnabled && 
+        (!selectedStudents || selectedStudents.length === 0)) {
+      setValidationError("Please select at least one student before generating chart");
+      return;
+    }
+    
+    // Call the actual generate chart function
+    generateChartData();
+  };
+
+  // Check if student filter should be displayed
+  const showStudentFilter = dataType === "singleSectionPerformance" && 
+                           selectedQuarter === "all" && 
+                           selectedSection && 
+                           selectedSection.students && 
+                           selectedSection.students.length > 0;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow mt-5">
@@ -120,11 +152,40 @@ const ChartFilters = ({
             if (selected) setSelectedQuarter(selected.value);
           }}
         />
+        
+        {/* Show student filter only when appropriate */}
+        {showStudentFilter && (
+          <div className="col-span-1 sm:col-span-2 md:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter Students
+            </label>
+            <StudentFilter
+              students={selectedSection.students}
+              selectedStudents={selectedStudents}
+              setSelectedStudents={setSelectedStudents}
+              isEnabled={true}
+              filterEnabled={studentFilterEnabled}
+              setFilterEnabled={setStudentFilterEnabled}
+              setHasFilterError={setHasFilterError}
+            />
+          </div>
+        )}
       </div>
       
+      {validationError && (
+        <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded text-red-600">
+          {validationError}
+        </div>
+      )}
+      
       <button
-        onClick={generateChartData}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out"
+        onClick={handleGenerateChart}
+        disabled={hasFilterError}
+        className={`font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out ${
+          hasFilterError 
+            ? 'bg-gray-400 cursor-not-allowed text-white' 
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
       >
         Generate Chart
       </button>
