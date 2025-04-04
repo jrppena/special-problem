@@ -66,14 +66,9 @@ const getChartAxisLabels = (selectedDataType, selectedQuarter) => {
     yAxisLabel = "Grade Values";
   }
   // Case 3: Sections Performance with All Quarters
-  else if (selectedDataType === "sectionsPerformance" && selectedQuarter === "all") {
-    xAxisLabel = "Grade Value";
-    yAxisLabel = "Section Names";
-  }
-  // Case 4: Sections Performance with Specific Quarter
-  else if (selectedDataType === "sectionsPerformance" && selectedQuarter !== "all") {
+  else if (selectedDataType === "sectionsPerformance") {
     xAxisLabel = "Section Names";
-    yAxisLabel = "Grade Values";
+    yAxisLabel = "Grade Value";
   }
 
   return { xAxisLabel, yAxisLabel };
