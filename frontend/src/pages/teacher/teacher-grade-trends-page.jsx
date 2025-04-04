@@ -214,6 +214,8 @@ const TeacherGradeTrendsPage = () => {
                   chartType={displayChartType} 
                   data={chartData} 
                   dataType={displayDataType}
+                  selectedDataType={dataType}
+                  selectedQuarter={selectedQuarter}
                 />
               </div>
             </div>
