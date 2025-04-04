@@ -167,6 +167,7 @@ const ChartFilters = ({
               filterEnabled={studentFilterEnabled}
               setFilterEnabled={setStudentFilterEnabled}
               setHasFilterError={setHasFilterError}
+              selectedQuarter={selectedQuarter}
             />
           </div>
         )}

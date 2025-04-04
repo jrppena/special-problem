@@ -86,12 +86,12 @@ const TeacherGradeTrendsPage = () => {
 
   // Reset selected students when section changes
   useEffect(() => {
-    if (selectedSection && selectedSection.students) {
+    if (selectedSection && selectedSection.students && selectedQuarter !== "all") {
       setSelectedStudents(selectedSection.students.map(student => student._id));
     } else {
       setSelectedStudents([]);
     }
-  }, [selectedSection]);
+  }, [selectedSection,selectedQuarter]);
 
   // Generate chart data using the backend
   const generateChartData = async () => {
@@ -188,7 +188,7 @@ const TeacherGradeTrendsPage = () => {
         ) : (
           chartData.length > 0 && (
             <>
-            <div className="bg-white p-6 rounded-lg shadow mt-5">
+            <div className="bg-white p-6 rounded-lg shadow mt-5 ">
               <div className="mb-4 flex justify-between items-center">
                 <h3 className="text-xl font-semibold">
                   {displaySubject?.subjectName} 
@@ -209,7 +209,7 @@ const TeacherGradeTrendsPage = () => {
                 selectedQuarter={displayQuarter}
               />
               
-              <div className="h-96">
+              <div className="w-full p-4">
                 <GradeChart 
                   chartType={displayChartType} 
                   data={chartData} 

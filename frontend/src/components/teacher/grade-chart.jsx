@@ -3,6 +3,7 @@ import {
   LineChart,
   BarChart,
   AreaChart,
+  RadarChart,
   Line,
   Bar,
   Area,
@@ -82,21 +83,26 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
     switch (chartType) {
       case "line":
         return (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer className="sm:w-full md:w-2/3 lg:w-1/2" height={400}>
             <LineChart data={data} margin={chartMargin}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="name" 
                 height={xAxisConfig.height || 30}
                 angle={xAxisConfig.angle}
-                textAnchor={xAxisConfig.textAnchor}
                 interval={xAxisConfig.interval}
                 tickFormatter={xAxisConfig.tickFormatter}
                 dy={xAxisConfig.dy}
               />
               <YAxis domain={yAxisDomain} />
               <Tooltip />
-              <Legend wrapperStyle={{ position: 'relative', marginTop: '20px' }} />
+              <Legend    wrapperStyle={{
+                position: 'relative',
+                whiteSpace: 'nowrap', // Ensures the legend items are in a single line
+                overflowX: 'auto', // Makes the legend scrollable horizontally if there are too many items
+                maxWidth: '100%', // Ensures it doesn't exceed the container width
+              }}
+                />
               {dataKeys.map((key, index) => (
                 <Line
                   key={key}
@@ -113,7 +119,7 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
         );
       case "bar":
         return (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer className="sm:w-full md:w-2/3 lg:w-1/2" height={400}>
             <BarChart data={data} margin={chartMargin}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -141,7 +147,7 @@ const TeacherGradeChart = ({ chartType, data, dataType }) => {
         );
       case "area":
         return (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer className="sm:w-full md:w-2/3 lg:w-1/2" height={400}>
             <AreaChart data={data} margin={chartMargin}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
