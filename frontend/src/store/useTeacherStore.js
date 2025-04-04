@@ -99,15 +99,15 @@ export const useTeacherStore = create((set) => ({
         }
     },
 
-    getClassGrades: async(classId,gradingPeriod,section)=>{
+    getClassGrades: async(classId,gradingPeriod,sectionId,schoolYear)=>{
         try{
             const response = await axiosInstance.get('/teacher/get/class-grades',{
-                params:{classId,gradingPeriod,section}
+                params:{classId,gradingPeriod,sectionId,schoolYear}
             });
             set({classGrades: response.data});
         }catch(error){
             console.log('Error in getClassGrades: ', error);
-            toast.error('Failed to fetch class grades');
+            toast.error(error.response?.data?.message || 'Failed to fetch class grades');
         }
     },
 

@@ -3,6 +3,7 @@ import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import Dropdown from "../../components/drop-down";
 import HonorsList from "./honors-list"; // Import the new HonorsList component
+import toast from "react-hot-toast";
 
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -27,14 +28,32 @@ const StudentGradesViewPage = () => {
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedQuarter, setSelectedQuarter] = useState("all");
-  const [enrolledClasses, setEnrolledClasses] = useState({});
-  const [gradesData, setGradesData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { classes, getEnrolledClasses, getEnrolledClassesGrades, grades, isGettingGrades } = useStudentStore();
+  const { 
+    classes, 
+    getEnrolledClasses, 
+    getEnrolledClassesGrades, 
+    grades, 
+    isGettingGrades,
+    clearGrades
+  } = useStudentStore();
   const { authUser } = useAuthStore();
+
+  // Clear grades when component mounts and unmounts
+  useEffect(() => {
+    // Clear grades data when component mounts to avoid seeing stale data
+    clearGrades();
+    
+    return () => {
+      // Also clear grades when component unmounts
+      clearGrades();
+    };
+  }, [clearGrades]);
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         // First get enrolled classes
         const updatedClasses = await getEnrolledClasses(authUser._id, selectedSchoolYear);
@@ -43,18 +62,18 @@ const StudentGradesViewPage = () => {
         if (updatedClasses && updatedClasses.length > 0) {
           // Then get grades using the updated classes
           await getEnrolledClassesGrades(updatedClasses, authUser._id, selectedSchoolYear);
-        } else {
-          setGradesData([]);
-        }
+        } 
       } catch (error) {
         // Handle any errors from either request
         console.error("Error fetching data: ", error);
         toast.error("Failed to load student data");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [selectedSchoolYear, authUser._id]); // All dependencies included
+  }, [selectedSchoolYear, authUser._id, getEnrolledClasses, getEnrolledClassesGrades]);
 
   const dynamicClassOptions =
     classes.length > 0
@@ -63,7 +82,7 @@ const StudentGradesViewPage = () => {
 
   // Filter the grades data based on the selected class
   const filteredGradesData =
-    selectedClass === "all" ? grades : [grades.find((g) => g.classId === selectedClass)];
+    selectedClass === "all" ? grades : grades.filter(g => g.classId === selectedClass);
 
   useEffect(() => {
     // Reset the quarter filter when selecting a single class
@@ -84,6 +103,9 @@ const StudentGradesViewPage = () => {
     const average = validGrades.reduce((sum, grade) => sum + grade, 0) / validGrades.length;
     return average.toFixed(2);
   };
+
+  // Combined loading state to show loader in both scenarios
+  const showLoading = isLoading || isGettingGrades;
 
   return (
     <div>
@@ -127,11 +149,11 @@ const StudentGradesViewPage = () => {
           </div>
         </div>
 
-        {classes.length === 0 ? (
+        {classes.length === 0 && !showLoading ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You are not enrolled in any classes for the selected school year.
           </div>
-        ) : isGettingGrades ? (
+        ) : showLoading ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
             <p className="text-gray-500">Loading grades...</p>
           </div>
@@ -159,7 +181,6 @@ const StudentGradesViewPage = () => {
                         </th>
                       )}
                       {selectedQuarter === "all" && (
-
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
                       )}
                     </tr>
@@ -225,8 +246,6 @@ const StudentGradesViewPage = () => {
                                 : "-"}
                             </td>
                       )}
-
-                     
                       </tr>
                     </tfoot>
                   )}

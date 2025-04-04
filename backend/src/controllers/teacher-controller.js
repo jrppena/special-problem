@@ -130,12 +130,20 @@ const addStudentToSection =  async (req, res) => {
     }
   }
 
-  const getClassGrades = async (req, res) => {
+ const getClassGrades = async (req, res) => {
     const classId = req.query.classId;
     const gradingPeriod = req.query.gradingPeriod;
-    const section = req.query.section;
+    const sectionId = req.query.sectionId;
+    const schoolYear = req.query.schoolYear;
 
     try {
+        // Fetch the section with populated students
+        const section = await Section.findById(sectionId).populate('students', '_id');
+        
+        if (!section) {
+            return res.status(404).json({ message: "Section not found" });
+        }
+
         // Initialize gradeMap with default values for all students in the section
         const gradeMap = {};
         section.students.forEach((student) => {
@@ -158,13 +166,13 @@ const addStudentToSection =  async (req, res) => {
 
         // Update gradeMap with actual values if grades exist
         grades.forEach((grade) => {
-            gradeMap[grade.student._id] = {
-                ...gradeMap[grade.student._id],
-                [grade.gradingPeriod]: grade.gradeValue, // ✅ Dynamically update based on gradingPeriod
-            };
+            if (grade.student && grade.student._id && gradeMap[grade.student._id]) {
+                gradeMap[grade.student._id] = {
+                    ...gradeMap[grade.student._id],
+                    [grade.gradingPeriod]: grade.gradeValue,
+                };
+            }
         });
-
-
 
         res.status(200).json(gradeMap);
 

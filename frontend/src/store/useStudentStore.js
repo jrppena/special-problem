@@ -47,6 +47,7 @@ export const useStudentStore = create((set) => ({
             set({isGettingGrades: false});
         }
     },
+    
     getChartData: async (studentId, schoolYear, dataType, selectedSubject, selectedQuarter) => {
         try {
             set({ isChartDataLoading: true });
@@ -74,7 +75,10 @@ export const useStudentStore = create((set) => ({
             set({ chartData: [], isChartDataLoading: false });
             return [];
         }
-    }
+    },
+
+    clearGrades: () => set({ grades: [], isGettingGrades: false }),
+
 
 
 

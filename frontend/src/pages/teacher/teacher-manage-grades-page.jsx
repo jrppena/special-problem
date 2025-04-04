@@ -52,7 +52,7 @@ const TeacherManageGradesPage = () => {
 
   useEffect(() => {
     if (selectedSection) {
-      getClassGrades(selectedClass._id, "all", selectedSection);
+      getClassGrades(selectedClass._id, "all", selectedSection._id, selectedSchoolYear);
     }
   }, [selectedClass, selectedSection, getClassGrades]);
 
