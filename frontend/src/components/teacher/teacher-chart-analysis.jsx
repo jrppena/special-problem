@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import Pagination from "../../components/pagination";
+import Pagination from "../pagination";
 import { ChevronLeft, ChevronRight, List } from "lucide-react";
+import generateInsights from "./generate-insights"; // Assuming this is a utility function that generates insights based on the chart data
 
 const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType }) => {
   // Add state for pagination
@@ -16,210 +17,8 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
   
   if (!chartData || chartData.length === 0) return null;
 
-  // Extract insights from the data
-  const generateInsights = () => {
-    // For single section performance across all quarters
-    if (dataType === "singleSectionPerformance" && selectedQuarter === "all") {
-      const students = Object.keys(chartData[0]).filter(key => key !== "name");
-      
-      // Calculate trend for each student
-      const trends = students.map(student => {
-        const values = chartData.map(item => parseFloat(item[student]) || 0);
-        const validValues = values.filter(val => val > 0);
-        
-        if (validValues.length < 2) return { student, trend: "insufficient" };
-        
-        const firstVal = validValues[0];
-        const lastVal = validValues[validValues.length - 1];
-        const diff = lastVal - firstVal;
-        const percentChange = (diff / firstVal) * 100;
-        
-        let trend;
-        if (percentChange > 5) trend = "improving";
-        else if (percentChange < -5) trend = "declining";
-        else trend = "stable";
-        
-        
-        return { 
-          student, 
-          trend, 
-          percentChange, 
-          highestQuarter: chartData[values.indexOf(Math.max(...values))].name,
-          lowestQuarter: chartData[values.indexOf(Math.min(...validValues))].name
-        };
-      });
-      
-      return {
-        type: "quarterTrends",
-        trends
-      };
-    }
-    
-    // For all sections in a single quarter
-    else if (dataType === "sectionsPerformance" && selectedQuarter !== "all") {
-      // Find highest and lowest performing sections
-      const sections = chartData.map(item => ({
-        name: item.name,
-        grade: parseFloat(item.Grade) || 0
-      }));
-      
-      // Filter out sections with invalid grades (undefined, null, 0)
-      const validSections = sections.filter(section => section.grade > 0);
-      
-      // If no valid sections, return a special case
-      if (validSections.length === 0) {
-        return {
-          type: "sectionComparison",
-          quarter: selectedQuarter,
-          noValidData: true,
-          message: "No valid grade data available for this quarter."
-        };
-      }
-      
-      // Sort sections by grade (highest to lowest)
-      validSections.sort((a, b) => b.grade - a.grade);
-      
-      const highestSection = validSections[0];
-      const lowestSection = validSections[validSections.length - 1];
-      const averageGrade = validSections.reduce((sum, section) => sum + section.grade, 0) / validSections.length;
-      
-      return {
-        type: "sectionComparison",
-        quarter: selectedQuarter,
-        highestSection,
-        lowestSection,
-        averageGrade: averageGrade.toFixed(2),
-        sectionCount: validSections.length,
-        totalSections: sections.length,
-        invalidSections: sections.length - validSections.length
-      };
-    }
-    
-    // For all sections across all quarters
-    else if (dataType === "sectionsPerformance" && selectedQuarter === "all") {
-      // Get all section names
-      const sectionNames = chartData.map(item => item.name);
-
-      // Get quarter columns (excluding name and Average)
-      const quarters = Object.keys(chartData[0]).filter(key => 
-        key !== "name" && key !== "Average" && key.startsWith("Q")
-      );
-
-      // Find the most improved and most declined sections
-      const sectionTrends = sectionNames.map(section => {
-        const sectionData = chartData.find(item => item.name === section);
-        
-        // Map quarter values for the section
-        const quarterValues = quarters.map(q => parseFloat(sectionData[q]) || 0);
-        
-        // Filter out invalid quarter values
-        const validValues = quarterValues.filter(val => val > 0);
-        
-        // Ensure we have at least two valid values to calculate a trend
-        if (validValues.length < 2) {
-          return { section, trend: 0, hasValidTrend: false };
-        }
-
-        // Calculate the trend as the difference between the first and last valid value
-        const firstVal = validValues[0];
-        const lastVal = validValues[validValues.length - 1];
-        const trend = lastVal - firstVal;
-        
-        // Calculate average across quarters (since we might not have an Average field)
-        const avgValue = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
-        
-        return {
-          section,
-          trend,
-          hasValidTrend: true,
-          average: avgValue // Calculate average from quarter values instead of using Average field
-        };
-      });
-
-      // Filter and sort sections with valid trends
-      const sectionsWithValidTrends = sectionTrends.filter(s => s.hasValidTrend);
-      sectionsWithValidTrends.sort((a, b) => b.trend - a.trend);
-
-      // Get sections with valid averages (now we calculated these ourselves)
-      const sectionsWithValidAverage = sectionTrends.filter(s => s.average > 0);
-      sectionsWithValidAverage.sort((a, b) => b.average - a.average);
-
-      // Check if we have enough valid data - use AND instead of OR to be more lenient
-      if (sectionsWithValidTrends.length === 0 && sectionsWithValidAverage.length === 0) {
-        return {
-          type: " ",
-          noValidData: true,
-          message: "Insufficient valid grade data to analyze trends."
-        };
-      }
-
-      // Find overall trend for all sections
-      const allGrades = [];
-      quarters.forEach(quarter => {
-        chartData.forEach(section => {
-          const grade = parseFloat(section[quarter]) || 0;
-          if (grade > 0) allGrades.push(grade);
-        });
-      });
-
-      const overallAverage = allGrades.length > 0 
-        ? allGrades.reduce((sum, grade) => sum + grade, 0) / allGrades.length 
-        : 0;
-
-      return {
-        type: "overallTrends",
-        mostImproved: sectionsWithValidTrends.length > 0 ? sectionsWithValidTrends[0] : null,
-        mostDeclined: sectionsWithValidTrends.length > 0 ? sectionsWithValidTrends[sectionsWithValidTrends.length - 1] : null,
-        highestAverage: sectionsWithValidAverage.length > 0 ? sectionsWithValidAverage[0] : null,
-        overallAverage: allGrades.length > 0 ? overallAverage.toFixed(2) : "N/A",
-        validDataPoints: allGrades.length,
-        missingDataPoints: (quarters.length * chartData.length) - allGrades.length
-      };
-    }
-    
-    // Single section in a specific quarter (less data to analyze)
-    else {
-      // Extract the subjects (excluding "name")
-      const subjects = Object.keys(chartData[0]).filter(key => key !== "name");
-
-      // Create an array of all grades for each subject across all students
-      const grades = chartData.map(student => {
-        return subjects.map(subject => ({
-          subject,
-          grade: parseFloat(student[subject]) || 0
-        }));
-      }).flat(); // Flatten the array to make it a single array of grade objects
-
-      // Filter out subjects with invalid grades
-      const validGrades = grades.filter(item => item.grade > 0);
-
-      // If no valid grades, return a special case
-      if (validGrades.length === 0) {
-        return {
-          type: "quarterSnapshot",
-          quarter: selectedQuarter,
-          noValidData: true,
-          message: "No valid grade data available for this quarter snapshot."
-        };
-      }
-
-      // Sort grades from highest to lowest
-      validGrades.sort((a, b) => b.grade - a.grade);
-
-      // Calculate and return the quarter snapshot data
-      return {
-        type: "quarterSnapshot",
-        quarter: selectedQuarter,
-        highestSubject: validGrades[0],
-        lowestSubject: validGrades[validGrades.length - 1],
-        averageGrade: (validGrades.reduce((sum, item) => sum + item.grade, 0) / validGrades.length).toFixed(2),
-        validSubjects: validGrades.length,
-        totalSubjects: grades.length
-      };
-    }
-  };
   
-  const insights = generateInsights();
+  const insights = generateInsights(chartData, dataType, selectedQuarter, chartType);
   
   // Render insights based on the type
   const renderInsights = () => {
@@ -269,13 +68,13 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
                           trend.trend === "declining" ? "text-red-600" : "text-yellow-600"
                         }`}>
                           {trend.trend === "improving" ? "Improving" : 
-                           trend.trend === "declining" ? "Declining" : "Stable"}
+                          trend.trend === "declining" ? "Declining" : "Stable"}
                         </span>{" "}
                         {trend.trend !== "stable" && `by ${Math.abs(trend.percentChange).toFixed(1)}%`}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Best performance in {trend.highestQuarter} • 
-                        Lowest in {trend.lowestQuarter}
+                        Best performance in {trend.highestQuarter}
+                        {trend.lowestQuarter !== "Same as highest" ? ` • Lowest in ${trend.lowestQuarter}` : " (all quarters equal)"}
                       </p>
                     </>
                   )}
@@ -321,7 +120,7 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
               </div>
               
               <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                <h5 className="text-red-800 font-medium">Needs Improvement</h5>
+                <h5 className="text-red-800 font-medium">Lowest Performing</h5>
                 <p className="text-2xl font-bold text-red-700">{insights.lowestSection.name}</p>
                 <p className="text-red-700">{insights.lowestSection.grade.toFixed(1)}%</p>
               </div>
@@ -372,29 +171,95 @@ const TeacherChartAnalysis = ({ chartData, dataType, selectedQuarter, chartType 
           </div>
         );
         
-      case "quarterSnapshot":
-        return (
-          <div>
-            <h4 className="text-lg font-medium mb-2">Quarter {insights.quarter.substring(1)} Snapshot</h4>
-            {insights.totalSubjects - insights.validSubjects > 0 && (
-              <p className="text-yellow-600 mb-3">
-                Note: {insights.totalSubjects - insights.validSubjects} out of {insights.totalSubjects} subjects have missing or invalid grade data.
-              </p>
-            )}
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h5 className="text-blue-800 font-medium">Performance Summary</h5>
-                <p className="text-xl font-bold text-blue-700">{insights.averageGrade}% average</p>
-                <p className="text-blue-700">
-                  Strongest: {insights.highestSubject.subject} ({insights.highestSubject.grade.toFixed(1)}%)
+        case "quarterSnapshot":
+          return insights.noValidData ? (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-600">{insights.message}</p>
+            </div>
+          ) : (
+            <div>
+              <h4 className="text-lg font-medium mb-2">Quarter {insights.quarter.substring(1)} Snapshot</h4>
+              {insights.totalStudents - insights.validStudents > 0 && (
+                <p className="text-yellow-600 mb-3">
+                  Note: {insights.totalStudents - insights.validStudents} out of {insights.totalStudents} students have missing or invalid grade data.
                 </p>
-                <p className="text-blue-700">
-                  Needs focus: {insights.lowestSubject.subject} ({insights.lowestSubject.grade.toFixed(1)}%)
-                </p>
+              )}
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h5 className="text-blue-800 font-medium">Performance Summary</h5>
+                  <p className="text-xl font-bold text-blue-700">{insights.averageGrade}% average</p>
+                  
+                  {insights.allSameGrade ? (
+                    <div className="text-blue-700">
+                      <p className="font-medium">All students have the same grade: {insights.maxGrade.toFixed(1)}%</p>
+                      {insights.validStudents > 5 ? (
+                        <p>({insights.validStudents} students with identical grades)</p>
+                      ) : (
+                        <ul className="list-disc pl-5">
+                          {insights.highestStudents.map((student, index) => (
+                            <li key={`student-${index}`}>{student.student}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-blue-700">
+                        <p className="font-medium">Highest: {insights.maxGrade.toFixed(1)}%</p>
+                        <ul className="list-disc pl-5">
+                          {insights.highestStudents.map((student, index) => (
+                            <li key={`highest-${index}`}>{student.student}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="text-blue-700 mt-2">
+                        <p className="font-medium">Lowest: {insights.minGrade.toFixed(1)}%</p>
+                        <ul className="list-disc pl-5">
+                          {insights.lowestStudents.map((student, index) => (
+                            <li key={`lowest-${index}`}>{student.student}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* New statistics section */}
+              <div className="mt-4 bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                <h5 className="text-indigo-800 font-medium mb-2">Detailed Statistics</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-indigo-900 font-medium">Central Tendency</p>
+                    <ul className="list-disc pl-5 text-indigo-700">
+                      <li>Mean: {insights.averageGrade}%</li>
+                      <li>Median: {insights.medianGrade}%</li>
+                      <li>
+                        Mode: {insights.modeGrade.values.map(v => `${v}%`).join(', ')}
+                        {insights.modeGrade.values.length > 0 && 
+                          ` (${insights.modeGrade.frequency} occurrences)`}
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-indigo-900 font-medium">Range Analysis</p>
+                    <ul className="list-disc pl-5 text-indigo-700">
+                      <li>Minimum: {insights.minGrade.toFixed(1)}%</li>
+                      <li>Maximum: {insights.maxGrade.toFixed(1)}%</li>
+                      <li>Range: {insights.gradeRange}%{insights.allSameGrade && " (all grades identical)"}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-indigo-900 font-medium">Distribution</p>
+                    <ul className="list-disc pl-5 text-indigo-700">
+                      <li>Standard Deviation: {insights.standardDeviation}{insights.allSameGrade && " (0)"}</li>
+                      <li>Valid Samples: {insights.validStudents}</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        );
+          );
       
       default:
         return null;
