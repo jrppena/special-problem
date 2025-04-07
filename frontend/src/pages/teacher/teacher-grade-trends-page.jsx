@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import TeacherChartAnalysis from "../../components/teacher/teacher-chart-analysis";
-import ChartFilters from "../../components/teacher/chart-filters";
-import GradeChart from "../../components/teacher/grade-chart";
-import ChartToolTip from "../../components/teacher/chart-tool-tip";
+import ChartFilters from "../../components/teacher/teacher-chart-filters";
+import GradeChart from "../../components/teacher/teacher-grade-chart";
+import ChartToolTip from "../../components/teacher/teacher-chart-tool-tip";
 import NoDataDisplay from "../../components/student/no-data-display";
 
 import { useTeacherStore } from "../../store/useTeacherStore";

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
-import ChartFilters from "../../components/student/chart-filters";
-import GradeChart from "../../components/student/grade-chart";
+import ChartFilters from "../../components/student/student-chart-filters";
+import GradeChart from "../../components/student/student-grade-chart";
 import NoDataDisplay from "../../components/student/no-data-display";
-import StudentChartAnalysis from "../../components/student/chart-analysis";
+import StudentChartAnalysis from "../../components/student/student-chart-analysis";
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import Dropdown from "../drop-down";
-import ChartToolTip from "./chart-tooltip";
+import ChartToolTip from "./student-chart-tooltip";
 
 const ChartFilters = ({
   schoolYears,
