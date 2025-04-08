@@ -6,12 +6,10 @@ import { schoolYears } from "../../constants";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
-import { Edit2, Save } from "lucide-react";
+import { Edit2, Save, Download, Upload, FileDown } from "lucide-react";
 import toast from "react-hot-toast";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { Download } from "lucide-react";
-import { Upload } from "lucide-react";
 import Pagination from "../../components/pagination"; // import Pagination component
 
 const TeacherManageGradesPage = () => {
@@ -166,14 +164,13 @@ const TeacherManageGradesPage = () => {
     { value: "all", label: "All Quarters" },
   ];
   
-// Pagination Logic for Students
-const paginatedStudents = isShowingAll
-  ? sortStudents(selectedSection?.students || []) // Always sort students if showing all
-  : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-  );
-
+  // Pagination Logic for Students
+  const paginatedStudents = isShowingAll
+    ? sortStudents(selectedSection?.students || []) // Always sort students if showing all
+    : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
   const handleDownloadTemplate = async () => {
     if (!selectedSection) {
@@ -220,6 +217,87 @@ const paginatedStudents = isShowingAll
     saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
   
     toast.success("Template downloaded successfully.");
+  };
+  
+  /**
+   * Download current grades to Excel file
+   */
+  const handleDownloadGrades = async () => {
+    if (!selectedSection) {
+      toast.error("Please select a section first.");
+      return;
+    }
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Class Grades");
+
+      // Header Row
+      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
+      const headerRow = sheet.addRow(headers);
+      headerRow.font = { bold: true };
+      
+      // Style headers
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD3D3D3' } // Light gray background
+        };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      // Populate with student data and grades
+      selectedSection.students.forEach((student) => {
+        const studentGrades = classGrades[student._id] || {};
+        const row = sheet.addRow([
+          student._id,
+          student.firstName,
+          student.lastName,
+          studentGrades.Q1 || "-",
+          studentGrades.Q2 || "-",
+          studentGrades.Q3 || "-",
+          studentGrades.Q4 || "-",
+        ]);
+        
+        // Add light border to each cell
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+        });
+      });
+
+      // Auto-adjust column width for better readability
+      sheet.columns.forEach((column, index) => {
+        let maxLength = headers[index].length;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+          if (cell.value) {
+            const cellLength = cell.value.toString().length;
+            maxLength = Math.max(maxLength, cellLength);
+          }
+        });
+        column.width = maxLength + 2;
+      });
+
+      // Generate and save the file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const fileName = `Current_Grades_${selectedClass.subjectName}_Grade${selectedClass.gradeLevel}_${selectedSection.name}.xlsx`;
+      saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
+
+      toast.success("Grades downloaded successfully.");
+    } catch (error) {
+      console.error("Error downloading grades:", error);
+      toast.error("Failed to download grades.");
+    }
   };
   
   /**
@@ -298,8 +376,6 @@ const paginatedStudents = isShowingAll
     }
   };
 
-  
-
   return (
     <div>
       <Navbar />
@@ -344,8 +420,6 @@ const paginatedStudents = isShowingAll
                   }}
                 />
 
-
-
                 {selectedClass && (
                   <>
                     <Dropdown
@@ -368,7 +442,6 @@ const paginatedStudents = isShowingAll
                           }
                         }}
                       />
-
 
                     <Dropdown
                       label="Quarter"
@@ -469,9 +542,8 @@ const paginatedStudents = isShowingAll
                       ))}
                     </tbody>
                   </table>
-                  
                 </div>
-                  {/* Pagination Controls */}
+                {/* Pagination Controls */}
                 <Pagination
                   totalItems={selectedSection.students.length}
                   itemsPerPage={itemsPerPage}
@@ -488,7 +560,8 @@ const paginatedStudents = isShowingAll
                     <Edit2 className="w-4 h-4" />
                     {editMode ? "Cancel Edit" : "Edit Grades"}
                   </button>
-                  {/* Upload Grades Input */}
+                  
+                  {/* Upload Grades Button */}
                   <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
                     <Upload className="w-4 h-4" />
                     Upload Grades
@@ -499,6 +572,15 @@ const paginatedStudents = isShowingAll
                       onChange={handleUploadGrades}
                     />
                   </label>
+                  
+                  {/* Download Current Grades Button */}
+                  <button
+                    onClick={handleDownloadGrades}
+                    className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex items-center gap-1"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Download Current Grades
+                  </button>
 
                   {editMode && isSaveAllEnabled && (
                     <button
