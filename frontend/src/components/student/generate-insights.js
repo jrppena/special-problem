@@ -1,4 +1,4 @@
-// analysis.js - Optimized grade analysis functions
+// Enhanced grade analysis functions
 
 // Constants for reuse
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
@@ -51,6 +51,68 @@ const safeParseFloat = (value) => {
 };
 
 /**
+ * Finds all highest and lowest values, handling ties
+ */
+const findHighestLowestValues = (chartData, dataKeys) => {
+  // Find all values first
+  const allValues = [];
+  chartData.forEach((item) => {
+    dataKeys.forEach(key => {
+      const value = safeParseFloat(item[key]);
+      if (value > 0) {
+        allValues.push({
+          value,
+          category: item.name || '',
+          dataKey: key
+        });
+      }
+    });
+  });
+  
+  // Can't proceed if no values
+  if (allValues.length === 0) {
+    return {
+      highest: { value: 0, category: '', dataKey: '', isTied: false, allMatches: [] },
+      lowest: { value: 100, category: '', dataKey: '', isTied: false, allMatches: [] },
+      sameHighestAndLowest: false
+    };
+  }
+  
+  // Sort the values
+  const sortedHighToLow = [...allValues].sort((a, b) => b.value - a.value);
+  const sortedLowToHigh = [...allValues].sort((a, b) => a.value - b.value);
+  
+  // Get highest/lowest values
+  const highestValue = sortedHighToLow[0]?.value || 0;
+  const lowestValue = sortedLowToHigh[0]?.value || 100;
+  
+  // Find all with same highest/lowest value
+  const allHighest = sortedHighToLow.filter(item => Math.abs(item.value - highestValue) < 0.001);
+  const allLowest = sortedLowToHigh.filter(item => Math.abs(item.value - lowestValue) < 0.001);
+  
+  // Check if highest and lowest are the same
+  const sameHighestAndLowest = Math.abs(highestValue - lowestValue) < 0.001;
+  
+  return {
+    highest: { 
+      value: highestValue, 
+      category: allHighest[0]?.category || '', 
+      dataKey: allHighest[0]?.dataKey || '',
+      isTied: allHighest.length > 1,
+      allMatches: allHighest
+    },
+    lowest: { 
+      value: lowestValue, 
+      category: allLowest[0]?.category || '', 
+      dataKey: allLowest[0]?.dataKey || '',
+      isTied: allLowest.length > 1,
+      allMatches: allLowest
+    },
+    sameHighestAndLowest
+  };
+};
+
+/**
  * Calculates basic statistics for the chart data
  */
 const calculateBasicStats = (chartData, dataKeys, stats) => {
@@ -61,28 +123,6 @@ const calculateBasicStats = (chartData, dataKeys, stats) => {
     if (values.length > 0) {
       const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
       stats.averages[key] = avg.toFixed(1);
-
-      const maxValue = Math.max(...values);
-      const maxItemIndex = allValues.findIndex(val => val === maxValue);
-      
-      const minValue = Math.min(...values);
-      const minItemIndex = allValues.findIndex(val => val === minValue);
-
-      if (maxValue > stats.highest.value) {
-        stats.highest = {
-          value: maxValue,
-          category: chartData[maxItemIndex]?.name || '',
-          dataKey: key
-        };
-      }
-      
-      if (minValue < stats.lowest.value && minValue > 0) {
-        stats.lowest = {
-          value: minValue,
-          category: chartData[minItemIndex]?.name || '',
-          dataKey: key
-        };
-      }
     } else {
       stats.averages[key] = 'No data';
     }
@@ -126,9 +166,11 @@ const calculateVolatility = (values) => {
 };
 
 /**
- * Creates a trend analysis object from values
+ * Simplified trend analysis that uses just start/end points and volatility
  */
-const createTrendAnalysis = (dataKey, values, categories) => {
+const createSimplifiedTrendAnalysis = (dataKey, values, categories) => {
+  if (values.length < 2) return null;
+  
   const firstValue = values[0];
   const lastValue = values[values.length - 1];
   const difference = lastValue - firstValue;
@@ -155,7 +197,7 @@ const createTrendAnalysis = (dataKey, values, categories) => {
 };
 
 /**
- * Analyzes subject trends across quarters
+ * Analyze subject trends using simplified approach
  */
 const analyzeSubjectTrend = (subject) => {
   const quarterKeys = QUARTERS.filter(key => Object.keys(subject).includes(key));
@@ -175,11 +217,11 @@ const analyzeSubjectTrend = (subject) => {
   // Need at least 2 quarters to analyze trend
   if (quarterValues.length < 2) return null;
 
-  return createTrendAnalysis(subject.name, quarterValues, quarterNames);
+  return createSimplifiedTrendAnalysis(subject.name, quarterValues, quarterNames);
 };
 
 /**
- * Analyzes quarter-by-quarter trends for a single subject
+ * Analyze quarter trends using simplified approach
  */
 const analyzeQuarterTrend = (chartData, subjectKey) => {
   // Need the non-zero quarters
@@ -197,11 +239,11 @@ const analyzeQuarterTrend = (chartData, subjectKey) => {
   // Need at least 2 quarters to analyze trend
   if (nonZeroValues.length < 2) return null;
 
-  return createTrendAnalysis(subjectKey, nonZeroValues, nonZeroQuarters);
+  return createSimplifiedTrendAnalysis(subjectKey, nonZeroValues, nonZeroQuarters);
 };
 
 /**
- * Analyzes trends based on the data type
+ * Analyze trends based on data type
  */
 const analyzeTrends = (chartData, dataType, dataKeys, stats) => {
   if (dataType === "subjectsAcrossQuarters") {
@@ -318,6 +360,7 @@ const generateTrendSummary = (dataType, stats) => {
   } else {
     // For multiple subjects
     const totalTrends = stats.trends.length;
+    
     if (improvingTrends > decliningTrends && improvingTrends > stableTrends) {
       stats.trendSummary = `Positive trends in ${improvingTrends} of ${totalTrends} subjects.`;
     } else if (decliningTrends > improvingTrends && decliningTrends > stableTrends) {
@@ -377,16 +420,17 @@ const generateSummaries = (chartData, dataType, dataKeys, stats) => {
 };
 
 /**
- * Main function to generate insights from chart data
+ * Main function to generate insights from chart data (enhanced version)
  */
-export const generateInsights = (chartData, dataType, selectedQuarter) => {
+export const generateInsightsEnhanced = (chartData, dataType, selectedQuarter) => {
   if (!chartData || chartData.length === 0) return null;
 
-  // Initialize stats object
+  // Initialize stats object with enhanced properties
   const stats = {
     averages: {},
-    highest: { value: 0, category: '', dataKey: '' },
-    lowest: { value: 100, category: '', dataKey: '' },   
+    highest: { value: 0, category: '', dataKey: '', isTied: false, allMatches: [] },
+    lowest: { value: 100, category: '', dataKey: '', isTied: false, allMatches: [] },
+    sameHighestAndLowest: false,
     trends: [],
     trendSummary: '',
     performanceSummary: '',
@@ -396,10 +440,23 @@ export const generateInsights = (chartData, dataType, selectedQuarter) => {
 
   const dataKeys = determineDataKeys(chartData, dataType);
   
+  // Use enhanced functions for stats
+  const valueStats = findHighestLowestValues(chartData, dataKeys);
+  stats.highest = valueStats.highest;
+  stats.lowest = valueStats.lowest;
+  stats.sameHighestAndLowest = valueStats.sameHighestAndLowest;
+  
+  // Calculate averages
   calculateBasicStats(chartData, dataKeys, stats);
+  
+  // Use simplified trend analysis
   analyzeTrends(chartData, dataType, dataKeys, stats);
+  
   calculateDataCompleteness(chartData, dataType, dataKeys, stats);
   generateSummaries(chartData, dataType, dataKeys, stats);
 
   return stats;
 };
+
+// Keep this for backward compatibility
+export const generateInsights = generateInsightsEnhanced;

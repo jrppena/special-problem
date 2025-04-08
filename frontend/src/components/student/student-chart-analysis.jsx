@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, MinusCircle } from 'lucide-react';
 import Pagination from '../pagination';
-import {generateInsights} from './generate-insights'; // Import analysis as a function
+import { generateInsightsEnhanced } from './generate-insights'; // Import enhanced analysis function
 
 const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isShowingAll, setIsShowingAll] = useState(false);
   const itemsPerPage = 3; // Show 3 trend items per page
   
-  // Calculate stats using the analysis function
-  const stats = generateInsights(chartData, dataType, selectedQuarter);
+  // Calculate stats using the enhanced analysis function
+  const stats = generateInsightsEnhanced(chartData, dataType, selectedQuarter);
 
   if (!stats) return null;
 
@@ -43,6 +43,75 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
     return stats.trends.slice(startIndex, startIndex + itemsPerPage);
   };
 
+  // Render highest grade with simplified tie handling
+  const renderHighestGrade = () => {
+    const { highest } = stats;
+    
+    if (highest.value <= 0) return null;
+    
+    return (
+      <div className="mb-2">
+        <div>
+          <span className="font-medium text-green-600">Highest Grade:</span> {highest.value.toFixed(1)}
+        </div>
+        
+        {/* If there are tied highest grades, list them all */}
+        {highest.isTied ? (
+          <ul className="ml-5 mt-1 space-y-1 text-gray-700">
+            {highest.allMatches.map((match, idx) => (
+              <li key={idx}>
+                {dataType === "subjectsAcrossQuarters"
+                  ? `${match.category} in ${match.dataKey}`
+                  : `${match.dataKey} in ${match.category}`}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="ml-5 text-gray-700">
+            {dataType === "subjectsAcrossQuarters" 
+              ? `${highest.category} in ${highest.dataKey}` 
+              : `${highest.dataKey} in ${highest.category}`}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render lowest grade with simplified tie handling
+  const renderLowestGrade = () => {
+    const { lowest } = stats;
+    
+    if (lowest.value >= 100 || lowest.value <= 0) return null;
+    if (stats.sameHighestAndLowest) return null;  // Don't show if same as highest
+    
+    return (
+      <div className="mb-2">
+        <div>
+          <span className="font-medium text-amber-600">Lowest Grade:</span> {lowest.value.toFixed(1)}
+        </div>
+        
+        {/* If there are tied lowest grades, list them all */}
+        {lowest.isTied ? (
+          <ul className="ml-5 mt-1 space-y-1 text-gray-700">
+            {lowest.allMatches.map((match, idx) => (
+              <li key={idx}>
+                {dataType === "subjectsAcrossQuarters"
+                  ? `${match.category} in ${match.dataKey}`
+                  : `${match.dataKey} in ${match.category}`}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="ml-5 text-gray-700">
+            {dataType === "subjectsAcrossQuarters" 
+              ? `${lowest.category} in ${lowest.dataKey}` 
+              : `${lowest.dataKey} in ${lowest.category}`}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Function to determine what to display in the analysis based on data type
   const renderAnalysisSections = () => {
     if (dataType === "subjectsInOneQuarter") {
@@ -54,15 +123,12 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
             <p className="text-gray-700 mb-4">{stats.performanceSummary}</p>
             
             <h4 className="text-lg font-medium text-gray-800 mb-2">Subject Grades</h4>
-            {stats.highest.value > 0 && (
-              <div className="mb-2">
-                <span className="font-medium text-green-600">Highest Grade:</span> {stats.highest.value} in {stats.highest.category}
-              </div>
-            )}
+            {renderHighestGrade()}
+            {renderLowestGrade()}
             
-            {stats.lowest.value < 100 && stats.lowest.value > 0 && (
-              <div className="mb-2">
-                <span className="font-medium text-amber-600">Lowest Grade:</span> {stats.lowest.value} in {stats.lowest.category}
+            {stats.sameHighestAndLowest && (
+              <div className="mb-2 text-gray-700">
+                All subjects have the same grade: {stats.highest.value.toFixed(1)}
               </div>
             )}
           </div>
@@ -78,28 +144,21 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
           <p className="text-gray-700 mb-4">{stats.performanceSummary}</p>
           
           <h4 className="text-lg font-medium text-gray-800 mb-2">Key Metrics</h4>
-          <ul className="space-y-2 text-gray-700">
-            {stats.highest.value > 0 && (
-              <li>
-                <span className="font-medium">Highest Grade:</span> {stats.highest.value} 
-                {dataType === "subjectsAcrossQuarters" 
-                  ? ` (${stats.highest.category} in ${stats.highest.dataKey})` 
-                  : ` (${stats.highest.dataKey} in ${stats.highest.category})`}
-              </li>
+          <div className="space-y-3 text-gray-700">
+            {renderHighestGrade()}
+            {renderLowestGrade()}
+            
+            {stats.sameHighestAndLowest && (
+              <div className="mb-2 text-gray-700">
+                All values are identical: {stats.highest.value.toFixed(1)}
+              </div>
             )}
-            {stats.lowest.value < 100 && stats.lowest.value > 0 && (
-              <li>
-                <span className="font-medium">Lowest Grade:</span> {stats.lowest.value}
-                {dataType === "subjectsAcrossQuarters" 
-                  ? ` (${stats.lowest.category} in ${stats.lowest.dataKey})` 
-                  : ` (${stats.lowest.dataKey} in ${stats.lowest.category})`}
-              </li>
-            )}
+            
             {Object.keys(stats.averages).length > 0 && (
-              <>
-                <li className="font-medium mt-2">
+              <div>
+                <div className="font-medium mt-2">
                   {dataType === "subjectsAcrossQuarters" ? "Quarter Averages:" : "Subject Averages:"}
-                </li>
+                </div>
                 <ul className="ml-5 space-y-1">
                   {Object.entries(stats.averages).map(([key, value]) => (
                     <li key={key}>
@@ -108,9 +167,9 @@ const StudentChartAnalysis = ({ chartData, dataType, selectedQuarter }) => {
                     </li>
                   ))}
                 </ul>
-              </>
+              </div>
             )}
-          </ul>
+          </div>
         </div>
 
         <div>
