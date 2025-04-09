@@ -84,33 +84,32 @@ const AdminManageGradesPage = () => {
     }
   }, [selectedSection, classGrades]);
 
-  const handleGradeChange = (studentId, quarter, value) => {
-    const normalizedValue = value.trim() === "" ? "-" : value;
-    
-    setEditedGrades(prevGrades => ({
+  
+const handleGradeChange = (studentId, quarter, value) => {
+  const normalizedValue = value.trim() === "" ? "-" : value;
+  
+  setEditedGrades(prevGrades => {
+    const updatedGrades = {
       ...prevGrades,
       [studentId]: {
         ...prevGrades[studentId],
         [quarter]: normalizedValue,
       },
-    }));
+    };
 
     // Check if any grades have been modified
-    const hasChanges = Object.entries({
-      ...prevGrades, 
-      [studentId]: {
-        ...prevGrades[studentId],
-        [quarter]: normalizedValue,
-      }
-    }).some(([studentId, grades]) =>
+    const hasChanges = Object.entries(updatedGrades).some(([sid, grades]) => 
       Object.entries(grades).some(([q, val]) => {
-        const originalValue = classGrades[studentId]?.[q] || "-";
+        const originalValue = classGrades[sid]?.[q] || "-";
         return val !== originalValue;
       })
     );
 
     setIsSaveAllEnabled(hasChanges);
-  };
+
+    return updatedGrades;
+  });
+};
 
   const handleSaveAllGrades = async () => {
     const hasChanges = Object.entries(editedGrades).some(([studentId, grades]) =>
@@ -152,7 +151,6 @@ const AdminManageGradesPage = () => {
 
     try {
       const response = await updateStudentGrades(selectedClass, editedGrades, selectedSection);
-      console.log(response);
       setEditMode(false);
       setIsSaveAllEnabled(false);
       toast.success("Grades updated successfully.");
