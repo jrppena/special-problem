@@ -12,6 +12,7 @@ import classRoutes from "./routes/class.route.js";
 import studentRoutes from "./routes/student.route.js";
 import messageRoutes from "./routes/message.route.js";
 import { app, server } from "./config/socket.js";
+import configRoutes from "./routes/config.route.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use('/api/teacher', teacherRoutes);
 app.use('/api/class', classRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/config', configRoutes);
 
 if(process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));

@@ -75,7 +75,7 @@ const ChartFilters = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
         <Dropdown
           label="School Year"
-          options={schoolYears.map((year) => year.name)}
+          options={schoolYears}
           selected={selectedSchoolYear}
           setSelected={setSelectedSchoolYear}
         />

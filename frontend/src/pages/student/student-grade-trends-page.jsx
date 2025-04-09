@@ -7,27 +7,28 @@ import NoDataDisplay from "../../components/student/no-data-display";
 import StudentChartAnalysis from "../../components/student/student-chart-analysis";
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useConfigStore } from "../../store/useConfigStore";
+import { Loader } from "lucide-react";
+import toast from "react-hot-toast";
 
 const StudentGradeTrendsPage = () => {
   // Store data
   const { classes, getEnrolledClasses, getChartData, chartData, isChartDataLoading } = useStudentStore();
   const { authUser } = useAuthStore();
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoadingSchoolYears, setIsLoadingSchoolYears] = useState(true);
 
   // State variables
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState("2024-2025");
   const [chartType, setChartType] = useState("line");
   const [dataType, setDataType] = useState("subjectsAcrossQuarters");
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("Q1");
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-  // School year options
-  const schoolYears = [
-    { name: "2024-2025" },
-    { name: "2023-2024" },
-    { name: "2022-2023" },
-    { name: "2021-2022" },
-  ];
 
   // Data type options with clearer labels
   const dataTypeOptions = [
@@ -35,6 +36,26 @@ const StudentGradeTrendsPage = () => {
     { value: "subjectsAcrossQuarters", label: "Compare Subjects Across All Quarters" },
     { value: "subjectsInOneQuarter", label: "Compare Subjects in One Quarter" },
   ];
+
+  // Fetch school years on component mount
+  useEffect(() => {
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoadingSchoolYears(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoadingSchoolYears(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
 
   // Set default subject when classes are loaded
   useEffect(() => {
@@ -46,6 +67,8 @@ const StudentGradeTrendsPage = () => {
   // Fetch initial classes data
   useEffect(() => {
     const fetchClasses = async () => {
+      if (!selectedSchoolYear || !authUser?._id) return;
+      
       try {
         setIsDataLoaded(false);
         await getEnrolledClasses(authUser._id, selectedSchoolYear);
@@ -57,7 +80,7 @@ const StudentGradeTrendsPage = () => {
     };
 
     fetchClasses();
-  }, [selectedSchoolYear, authUser._id, getEnrolledClasses]);
+  }, [selectedSchoolYear, authUser?._id, getEnrolledClasses]);
 
   // Fetch chart data whenever filters change
   useEffect(() => {
@@ -66,7 +89,7 @@ const StudentGradeTrendsPage = () => {
 
   // Function to fetch chart data from backend
   const fetchChartData = async () => {
-    if (!authUser._id || classes.length === 0) return;
+    if (!authUser?._id || !selectedSchoolYear || classes.length === 0) return;
     
     await getChartData(
       authUser._id,
@@ -81,6 +104,15 @@ const StudentGradeTrendsPage = () => {
   const handleFilterChange = () => {
     fetchChartData();
   };
+
+  // If loading school years, show loader
+  if (isGettingSchoolYears || isLoadingSchoolYears) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>

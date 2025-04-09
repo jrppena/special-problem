@@ -18,6 +18,7 @@ import AdminManageSectionPage from "./pages/admin/admin-manage-section-page";
 import AdminManageClassPage from "./pages/admin/admin-manage-class-page";
 import AdminVerificationPage from "./pages/admin/admin-verification-page";
 import AdminManageGradesPage from "./pages/admin/admin-manage-grades-page";
+import AdminManageConfigurationPage from "./pages/admin/admin-manage-configuration-page";
 
 import TeacherSectionManagementPage from "./pages/teacher/teacher-section-management-page";
 import TeacherManageGradesPage from "./pages/teacher/teacher-manage-grades-page";
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/admin/manage-sections" element={authUser && authUser.role === "Admin" ? <AdminManageSectionPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-classes" element={authUser && authUser.role === "Admin" ? <AdminManageClassPage /> : <Navigate to="/" />} />
                 <Route path="/admin/manage-grades" element={authUser && authUser.role === "Admin" ? <AdminManageGradesPage /> : <Navigate to="/" />} />
+                <Route path="/admin/manage-configurations" element={authUser && authUser.role === "Admin" ? <AdminManageConfigurationPage /> : <Navigate to="/" />} />
 
                 <Route path="/teacher/manage-sections" element={authUser && authUser.role === "Teacher" ? <TeacherSectionManagementPage /> : <Navigate to="/" />} />\
                 <Route path="/teacher/manage-grades" element={authUser && authUser.role === "Teacher" ? <TeacherManageGradesPage /> : <Navigate to="/" />} />

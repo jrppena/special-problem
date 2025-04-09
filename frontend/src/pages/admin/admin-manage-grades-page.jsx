@@ -2,20 +2,18 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/navigation-bar";
 import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
-import { schoolYears } from "../../constants";
-import { useAuthStore } from "../../store/useAuthStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
-import { useClassStore} from "../../store/useClassStore";
-import { Edit2, Save } from "lucide-react";
+import { useClassStore } from "../../store/useClassStore";
+import { useConfigStore } from "../../store/useConfigStore";
+import { Edit2, Save, Download, Upload, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { Download } from "lucide-react";
-import { Upload } from "lucide-react";
-import Pagination from "../../components/pagination"; // import Pagination component
+import Pagination from "../../components/pagination";
 
 const AdminManageGradesPage = () => {
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
+  // States - all defined at the top before any conditionals
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("all");
@@ -23,41 +21,61 @@ const AdminManageGradesPage = () => {
   const [editedGrades, setEditedGrades] = useState({});
   const [isSaveAllEnabled, setIsSaveAllEnabled] = useState(false);
   const [sectionsTeaching, setSectionsTeaching] = useState([]);
-
-  // Sorting state
+  const [isLoading, setIsLoading] = useState(true);
   const [sortByStudentLastName, setSortByStudentLastName] = useState("No Filter");
-
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Items per page
-  const [isShowingAll, setIsShowingAll] = useState(false); // Show all toggle
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isShowingAll, setIsShowingAll] = useState(false);
 
+  // Store hooks
   const { classGrades, getClassGrades, updateStudentGrades } = useTeacherStore();
-  const {classes, fetchClasses} = useClassStore();
+  const { classes, fetchClasses } = useClassStore();
+  const { fetchSchoolYears,isGettingSchoolYears } = useConfigStore();
+  const [schoolYears, setSchoolYears] = useState([]);
+  
 
-  useEffect(() => {
-    fetchClasses(selectedSchoolYear);
-  }, [selectedSchoolYear]);
 
+  // Fetch school years when component mounts
+  useEffect(() => async () => {
+    const schoolYears = await fetchSchoolYears();
+    if (schoolYears && schoolYears.length > 0) {
+      setSchoolYears(schoolYears);
+      setSelectedSchoolYear(schoolYears[0]); // Set the first school year as default
+      setIsLoading(false); // Set loading to false after fetching
+    }
+  }, [fetchSchoolYears]);
+
+  // Fetch classes when school year changes
   useEffect(() => {
-    if (classes.length > 0) {
+    if (selectedSchoolYear) {
+      fetchClasses(selectedSchoolYear);
+    }
+  }, [selectedSchoolYear, fetchClasses]);
+
+  // Set default class and section when classes are loaded
+  useEffect(() => {
+    if (classes && classes.length > 0) {
       const defaultClass = classes[0];
       setSelectedClass(defaultClass);
-      setSelectedSection(defaultClass.sections[0] || null);
+      setSelectedSection(defaultClass.sections && defaultClass.sections.length > 0 
+        ? defaultClass.sections[0] 
+        : null);
     } else {
       setSelectedClass(null);
       setSelectedSection(null);
     }
   }, [classes]);
 
+  // Get class grades when section changes
   useEffect(() => {
-    if (selectedSection) {
+    if (selectedSection && selectedClass && selectedSchoolYear) {
       getClassGrades(selectedClass._id, "all", selectedSection._id, selectedSchoolYear);
     }
-  }, [selectedClass, selectedSection, getClassGrades]);
+  }, [selectedClass, selectedSection, getClassGrades, selectedSchoolYear]);
 
+  // Initialize edited grades based on class grades
   useEffect(() => {
-    if (selectedSection) {
+    if (selectedSection && selectedSection.students) {
       const initialGrades = selectedSection.students.reduce((acc, student) => {
         acc[student._id] = classGrades[student._id] || {};
         return acc;
@@ -77,8 +95,14 @@ const AdminManageGradesPage = () => {
       },
     }));
 
-    // Check if any grades have been modified (by comparing the current grades with original ones)
-    const hasChanges = Object.entries(editedGrades).some(([studentId, grades]) =>
+    // Check if any grades have been modified
+    const hasChanges = Object.entries({
+      ...prevGrades, 
+      [studentId]: {
+        ...prevGrades[studentId],
+        [quarter]: normalizedValue,
+      }
+    }).some(([studentId, grades]) =>
       Object.entries(grades).some(([q, val]) => {
         const originalValue = classGrades[studentId]?.[q] || "-";
         return val !== originalValue;
@@ -131,6 +155,7 @@ const AdminManageGradesPage = () => {
       console.log(response);
       setEditMode(false);
       setIsSaveAllEnabled(false);
+      toast.success("Grades updated successfully.");
     } catch (error) {
       toast.error("Failed to save all grades.");
       console.log("Error saving grades:", error);
@@ -145,10 +170,12 @@ const AdminManageGradesPage = () => {
     }
   };
 
-  // Sorting options for students (sorted by lastName)
+  // Sorting options for students
   const sortingOptions = ["No Filter", "Ascending", "Descending"];
 
   const sortStudents = (students) => {
+    if (!students) return [];
+    
     let sortedStudents = [...students];
     if (sortByStudentLastName === "Ascending") {
       sortedStudents.sort((a, b) => a.lastName.localeCompare(b.lastName));
@@ -166,14 +193,13 @@ const AdminManageGradesPage = () => {
     { value: "all", label: "All Quarters" },
   ];
   
-// Pagination Logic for Students
-const paginatedStudents = isShowingAll
-  ? sortStudents(selectedSection?.students || []) // Always sort students if showing all
-  : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-  );
-
+  // Pagination Logic for Students
+  const paginatedStudents = isShowingAll
+    ? sortStudents(selectedSection?.students || [])
+    : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
   const handleDownloadTemplate = async () => {
     if (!selectedSection) {
@@ -202,16 +228,16 @@ const paginatedStudents = isShowingAll
       ]);
     });
   
-    // Auto-adjust column width based on the longest value in each column
+    // Auto-adjust column width
     sheet.columns.forEach((column, index) => {
-      let maxLength = headers[index].length; // Start with header length
+      let maxLength = headers[index].length;
       column.eachCell({ includeEmpty: true }, (cell) => {
         if (cell.value) {
           const cellLength = cell.value.toString().length;
           maxLength = Math.max(maxLength, cellLength);
         }
       });
-      column.width = maxLength + 2; // Add some padding
+      column.width = maxLength + 2;
     });
   
     // Generate the file
@@ -222,9 +248,6 @@ const paginatedStudents = isShowingAll
     toast.success("Template downloaded successfully.");
   };
   
-  /**
-   * Upload and Process Filled Excel File
-   */
   const handleUploadGrades = async (event) => {
     const file = event.target.files[0];
 
@@ -266,7 +289,7 @@ const paginatedStudents = isShowingAll
             Q4: row[7]?.toString() || "-",
           };
 
-          // Validate grades (must be numbers between 0-100 or "-")
+          // Validate grades
           for (const quarter in grades) {
             if (grades[quarter] !== "-" && (isNaN(grades[quarter]) || grades[quarter] < 0 || grades[quarter] > 100)) {
               toast.error(`Invalid grade for Student ID ${studentId} in ${quarter}. Must be between 0-100.`);
@@ -283,12 +306,11 @@ const paginatedStudents = isShowingAll
           const response = await updateStudentGrades(selectedClass, newGrades, selectedSection);
           setEditMode(false);
           setIsSaveAllEnabled(false);
+          toast.success("Grades successfully uploaded.");
         } catch (error) {
           toast.error("Failed to save all grades.");
           console.log("Error saving grades:", error);
         }
-        
-        toast.success("Grades successfully uploaded.");
       };
 
       reader.readAsArrayBuffer(file);
@@ -298,7 +320,14 @@ const paginatedStudents = isShowingAll
     }
   };
 
-  
+  // If loading, show loader
+  if (isGettingSchoolYears) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  } 
 
   return (
     <div>
@@ -309,13 +338,17 @@ const paginatedStudents = isShowingAll
           <h3 className="text-xl font-semibold mb-4">Filters</h3>
           <Dropdown
             label="School Year"
-            options={schoolYears.map((year) => year.name)}
-            selected={selectedSchoolYear}
-            setSelected={setSelectedSchoolYear}
+            options={schoolYears}
+            selected={selectedSchoolYear || ""}
+            setSelected={(year) => {
+              console.log(schoolYears);
+              setSelectedSchoolYear(year);
+            }}
           />
+
         </div>
 
-        {classes.length === 0 ? (
+        {(!classes || classes.length === 0) ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You have no assigned classes for the selected school year.
           </div>
@@ -344,8 +377,6 @@ const paginatedStudents = isShowingAll
                   }}
                 />
 
-
-
                 {selectedClass && (
                   <>
                     <Dropdown
@@ -369,13 +400,12 @@ const paginatedStudents = isShowingAll
                         }}
                       />
 
-
                     <Dropdown
                       label="Quarter"
                       options={quarterOptions.map((q) => q.label)}
-                      selected={quarterOptions.find((q) => q.value === selectedQuarter).label}
+                      selected={quarterOptions.find((q) => q.value === selectedQuarter)?.label || "All Quarters"}
                       setSelected={(quarter) =>
-                        setSelectedQuarter(quarterOptions.find((q) => q.label === quarter).value)
+                        setSelectedQuarter(quarterOptions.find((q) => q.label === quarter)?.value || "all")
                       }
                     />
                     {/* Sorting */}
@@ -401,6 +431,35 @@ const paginatedStudents = isShowingAll
                     <Download className="w-4 h-4" />
                     Download Template
                   </button>
+                  
+                  <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
+                    <Upload className="w-4 h-4" />
+                    Upload Grades
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      className="hidden"
+                      onChange={handleUploadGrades}
+                    />
+                  </label>
+                  
+                  <button
+                    onClick={handleEditMode}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    {editMode ? "Cancel Edit" : "Edit Grades"}
+                  </button>
+                  
+                  {editMode && isSaveAllEnabled && (
+                    <button
+                      onClick={handleSaveAllGrades}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Changes
+                    </button>
+                  )}
                 </div>
                 
                 <div className="overflow-x-auto">
@@ -469,47 +528,17 @@ const paginatedStudents = isShowingAll
                       ))}
                     </tbody>
                   </table>
-                  
                 </div>
-                  {/* Pagination Controls */}
+                
+                {/* Pagination Controls */}
                 <Pagination
-                  totalItems={selectedSection.students.length}
+                  totalItems={selectedSection.students?.length || 0}
                   itemsPerPage={itemsPerPage}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}
                   isShowingAll={isShowingAll}
                   setIsShowingAll={setIsShowingAll}
                 />
-                <div className="flex justify-start mt-4 gap-4">
-                  <button
-                    onClick={handleEditMode}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    {editMode ? "Cancel Edit" : "Edit Grades"}
-                  </button>
-                  {/* Upload Grades Input */}
-                  <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    Upload Grades
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      className="hidden"
-                      onChange={handleUploadGrades}
-                    />
-                  </label>
-
-                  {editMode && isSaveAllEnabled && (
-                    <button
-                      onClick={handleSaveAllGrades}
-                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
-                    >
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </button>
-                  )}
-                </div>
               </div>
             ) : (
               <div className="text-center text-gray-500 mt-6">No sections found for the selected class.</div>

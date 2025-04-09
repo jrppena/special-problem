@@ -2,18 +2,25 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/navigation-bar";
 import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
-import { schoolYears } from "../../constants";
+import { useConfigStore } from "../../store/useConfigStore";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
-import { Edit2, Save, Download, Upload, FileDown } from "lucide-react";
+import { Edit2, Save, Download, Upload, FileDown, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import Pagination from "../../components/pagination"; // import Pagination component
+import Pagination from "../../components/pagination";
 
 const TeacherManageGradesPage = () => {
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("all");
@@ -33,9 +40,32 @@ const TeacherManageGradesPage = () => {
   const { assignedClasses, getAssignedClasses, classGrades, getClassGrades, updateStudentGrades } = useTeacherStore();
   const { authUser } = useAuthStore();
 
+  // Fetch school years on component mount
   useEffect(() => {
-    getAssignedClasses(authUser._id, selectedSchoolYear);
-  }, [selectedSchoolYear, authUser._id]);
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoading(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
+
+  // Fetch assigned classes when school year changes
+  useEffect(() => {
+    if (selectedSchoolYear && authUser?._id) {
+      getAssignedClasses(authUser._id, selectedSchoolYear);
+    }
+  }, [selectedSchoolYear, authUser?._id, getAssignedClasses]);
 
   useEffect(() => {
     if (assignedClasses.length > 0) {
@@ -49,13 +79,13 @@ const TeacherManageGradesPage = () => {
   }, [assignedClasses]);
 
   useEffect(() => {
-    if (selectedSection) {
+    if (selectedSection && selectedClass && selectedSchoolYear) {
       getClassGrades(selectedClass._id, "all", selectedSection._id, selectedSchoolYear);
     }
-  }, [selectedClass, selectedSection, getClassGrades]);
+  }, [selectedClass, selectedSection, selectedSchoolYear, getClassGrades]);
 
   useEffect(() => {
-    if (selectedSection) {
+    if (selectedSection && selectedSection.students) {
       const initialGrades = selectedSection.students.reduce((acc, student) => {
         acc[student._id] = classGrades[student._id] || {};
         return acc;
@@ -129,6 +159,7 @@ const TeacherManageGradesPage = () => {
       console.log(response);
       setEditMode(false);
       setIsSaveAllEnabled(false);
+      toast.success("Grades updated successfully.");
     } catch (error) {
       toast.error("Failed to save all grades.");
       console.log("Error saving grades:", error);
@@ -375,6 +406,15 @@ const TeacherManageGradesPage = () => {
       toast.error("Failed to upload grades. Ensure the file format is correct.");
     }
   };
+  
+  // If loading, show loader
+  if (isGettingSchoolYears || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -385,9 +425,11 @@ const TeacherManageGradesPage = () => {
           <h3 className="text-xl font-semibold mb-4">Filters</h3>
           <Dropdown
             label="School Year"
-            options={schoolYears.map((year) => year.name)}
-            selected={selectedSchoolYear}
-            setSelected={setSelectedSchoolYear}
+            options={schoolYears}
+            selected={selectedSchoolYear || ""}
+            setSelected={(year) => {
+              setSelectedSchoolYear(year);
+            }}
           />
         </div>
 
@@ -446,9 +488,9 @@ const TeacherManageGradesPage = () => {
                     <Dropdown
                       label="Quarter"
                       options={quarterOptions.map((q) => q.label)}
-                      selected={quarterOptions.find((q) => q.value === selectedQuarter).label}
+                      selected={quarterOptions.find((q) => q.value === selectedQuarter)?.label || "All Quarters"}
                       setSelected={(quarter) =>
-                        setSelectedQuarter(quarterOptions.find((q) => q.label === quarter).value)
+                        setSelectedQuarter(quarterOptions.find((q) => q.label === quarter)?.value || "all")
                       }
                     />
                     {/* Sorting */}
@@ -545,7 +587,7 @@ const TeacherManageGradesPage = () => {
                 </div>
                 {/* Pagination Controls */}
                 <Pagination
-                  totalItems={selectedSection.students.length}
+                  totalItems={selectedSection.students?.length || 0}
                   itemsPerPage={itemsPerPage}
                   currentPage={currentPage}
                   setCurrentPage={setCurrentPage}

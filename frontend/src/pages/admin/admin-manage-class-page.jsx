@@ -4,22 +4,38 @@ import Navbar from "../../components/navigation-bar";
 import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
 import SearchFilter from "../../components/search-filter";
-import Pagination from "../../components/pagination"; // Import the Pagination component
+import Pagination from "../../components/pagination";
 
-import { schoolYears } from "../../constants";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
 import { useClassStore } from "../../store/useClassStore";
+import { useConfigStore } from "../../store/useConfigStore";
 
-import { Pen, Trash2 } from "lucide-react";
+import { Pen, Trash2, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import { gradeLevels } from "../../constants";
 import Exceljs from "exceljs";
 
 const AdminManageClassPage = () => {
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
   
-  const { classes, fetchClasses, createClass, editClass, deleteClass, createClassThroughImport, isCreatingClasses, deleteAllClassesGivenSchoolYear } = useClassStore();
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { 
+    classes, 
+    fetchClasses, 
+    createClass, 
+    editClass, 
+    deleteClass, 
+    createClassThroughImport, 
+    isCreatingClasses, 
+    deleteAllClassesGivenSchoolYear 
+  } = useClassStore();
+  
   const { sections, fetchSections } = useSectionStore();
   const { teachers, getTeachers } = useTeacherStore();
   
@@ -28,11 +44,34 @@ const AdminManageClassPage = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10); // Show 10 classes per page
   const [isShowingAll, setIsShowingAll] = useState(false);
   
+  // Fetch school years on component mount
   useEffect(() => {
-    fetchClasses(selectedSchoolYear);
-    fetchSections(selectedSchoolYear);
-    getTeachers();
-  }, [selectedSchoolYear]);
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoading(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
+  
+  // Fetch data when school year changes
+  useEffect(() => {
+    if (selectedSchoolYear) {
+      fetchClasses(selectedSchoolYear);
+      fetchSections(selectedSchoolYear);
+      getTeachers();
+    }
+  }, [selectedSchoolYear, fetchClasses, fetchSections, getTeachers]);
  
   const [selectedSections, setSelectedSections] = useState([]);
   const [selectedSectionFilter, setSelectedSectionFilter] = useState("No Filter");
@@ -365,6 +404,15 @@ const AdminManageClassPage = () => {
     setCurrentPage(1);
   }, [selectedSectionFilter, selectedTeacher, selectedGradeLevel, searchClassName]);
   
+  // If loading, show loader
+  if (isGettingSchoolYears || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
+  
   return (
     <div>
       <Navbar />
@@ -377,9 +425,11 @@ const AdminManageClassPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Dropdown
               label="School Year"
-              options={schoolYears.map((year) => year.name)}
-              selected={selectedSchoolYear}
-              setSelected={setSelectedSchoolYear}
+              options={schoolYears}
+              selected={selectedSchoolYear || ""}
+              setSelected={(year) => {
+                setSelectedSchoolYear(year);
+              }}
             />
             <Dropdown
               label="Section"

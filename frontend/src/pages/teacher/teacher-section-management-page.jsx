@@ -4,19 +4,27 @@ import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
 import SearchFilter from "../../components/search-filter";
 import Select from "react-select";
-import { schoolYears, gradeLevels } from "../../constants";
+import { gradeLevels } from "../../constants";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useConfigStore } from "../../store/useConfigStore";
 import toast from "react-hot-toast";
-import { Trash2, FileText, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { Trash2, FileText, ChevronLeft, ChevronRight, List, Loader } from "lucide-react";
 import StudentGradesModal from "./student-grades-modal";
 import { useNavigate } from "react-router-dom";
 import SectionGradesModal from "./section-grades-modal";
-import Pagination from "../../components/pagination"; // Import the Pagination component
+import Pagination from "../../components/pagination";
 
 const TeacherSectionManagementPage = () => {
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [selectedSection, setSelectedSection] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudentGrades, setSelectedStudentGrades] = useState({});
@@ -41,9 +49,32 @@ const TeacherSectionManagementPage = () => {
 
   const sortingOptions = ["No Filter", "Ascending", "Descending"];
 
+  // Fetch school years on component mount
   useEffect(() => {
-    getAdviserSections(authUser._id, selectedSchoolYear);
-  }, [selectedSchoolYear]);
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoading(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
+
+  // Fetch adviser sections when school year changes
+  useEffect(() => {
+    if (selectedSchoolYear && authUser?._id) {
+      getAdviserSections(authUser._id, selectedSchoolYear);
+    }
+  }, [selectedSchoolYear, authUser]);
 
   useEffect(() => {
     if (adviserSections && adviserSections.length > 0) {
@@ -57,7 +88,7 @@ const TeacherSectionManagementPage = () => {
     if (isModalOpen && selectedSection) {
       getAvailableStudents(selectedSection.gradeLevel, selectedSchoolYear);
     }
-  }, [isModalOpen, selectedSection]);
+  }, [isModalOpen, selectedSection, selectedSchoolYear]);
 
   const openModal = () => {
     setModalStudents([]);
@@ -90,7 +121,6 @@ const TeacherSectionManagementPage = () => {
     };
     const updatedSection = await removeStudentFromSection(data);
     if(updatedSection) {
-
       setSelectedSection(updatedSection);
     }
   };
@@ -191,6 +221,15 @@ const TeacherSectionManagementPage = () => {
     setCurrentPage(1);
   }, [searchStudentName, sortByStudentName]);
 
+  // If loading, show loader
+  if (isGettingSchoolYears || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <Navbar />
@@ -204,9 +243,11 @@ const TeacherSectionManagementPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <Dropdown
               label="School Year"
-              options={schoolYears.map((year) => year.name)}
-              selected={selectedSchoolYear}
-              setSelected={setSelectedSchoolYear}
+              options={schoolYears}
+              selected={selectedSchoolYear || ""}
+              setSelected={(year) => {
+                setSelectedSchoolYear(year);
+              }}
             />
 
             <SearchFilter

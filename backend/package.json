@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "seed": "node src/seeds/teacher.seed.js"
+    "seed": "node src/seeds/teacher.seed.js",
+    "initConfig": "node src/config/initConfig.js"
   },
   "author": "",
   "license": "ISC",

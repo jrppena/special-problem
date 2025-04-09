@@ -9,15 +9,23 @@ import NoDataDisplay from "../../components/student/no-data-display";
 
 import { useTeacherStore } from "../../store/useTeacherStore";
 import { useAuthStore } from "../../store/useAuthStore";
-import { schoolYears } from "../../constants";
+import { useConfigStore } from "../../store/useConfigStore";
+import { Loader } from "lucide-react";
+import toast from "react-hot-toast";
 
 const TeacherGradeTrendsPage = () => {
   // Store functions and state
   const { assignedClasses, getAssignedClasses, getChartData } = useTeacherStore();
   const { authUser } = useAuthStore();
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // State variables for filters
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
   const [chartType, setChartType] = useState("line"); // Default chart type
   const [dataType, setDataType] = useState("singleSectionPerformance");
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -52,9 +60,31 @@ const TeacherGradeTrendsPage = () => {
     { value: "Q4", label: "Quarter 4" },
   ];
 
-  // Fetch assigned classes on mount or when school year changes
+  // Fetch school years on component mount
+  useEffect(() => {
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoading(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
+
+  // Fetch assigned classes when school year changes
   useEffect(() => {
     const fetchAssignedClasses = async () => {
+      if (!selectedSchoolYear || !authUser?._id) return;
+      
       try {
         setIsDataLoaded(false);
         await getAssignedClasses(authUser._id, selectedSchoolYear);
@@ -66,7 +96,7 @@ const TeacherGradeTrendsPage = () => {
     };
 
     fetchAssignedClasses();
-  }, [selectedSchoolYear, authUser._id, getAssignedClasses]);
+  }, [selectedSchoolYear, authUser?._id, getAssignedClasses]);
 
   // Update subject and section when assigned classes change
   useEffect(() => {
@@ -91,7 +121,7 @@ const TeacherGradeTrendsPage = () => {
     } else {
       setSelectedStudents([]);
     }
-  }, [selectedSection,selectedQuarter]);
+  }, [selectedSection, selectedQuarter]);
 
   // Generate chart data using the backend
   const generateChartData = async () => {
@@ -151,6 +181,15 @@ const TeacherGradeTrendsPage = () => {
       setIsChartGenerating(false);
     }
   };
+
+  // If loading, show loader
+  if (isGettingSchoolYears || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>

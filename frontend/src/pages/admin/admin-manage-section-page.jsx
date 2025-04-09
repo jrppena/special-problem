@@ -5,15 +5,16 @@ import PageHeader from "../../components/page-header";
 import Dropdown from "../../components/drop-down";
 import SearchFilter from "../../components/search-filter";
 import EnrolledStudentsFilter from "../../components/enrolled-students-filter";
-import Pagination from "../../components/pagination"; // Import the Pagination component
+import Pagination from "../../components/pagination";
 
 import { useAuthStore } from "../../store/useAuthStore";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
+import { useConfigStore } from "../../store/useConfigStore";
 
 import toast from "react-hot-toast";
-import { Pen, Trash2 } from 'lucide-react';
-import { schoolYears, gradeLevels } from "../../constants";
+import { Pen, Trash2, Loader } from 'lucide-react';
+import { gradeLevels } from "../../constants";
 import Select from "react-select";
 
 const AdminManageSectionPage = () => {
@@ -30,18 +31,20 @@ const AdminManageSectionPage = () => {
   } = useSectionStore();
 
   const { teachers, getTeachers } = useTeacherStore();
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+
+  // State for school years
+  const [schoolYears, setSchoolYears] = useState([]);
 
   // For filtering
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(
-    schoolYears.find((year) => year.isCurrent).name
-  );
-  
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
   const [selectedGradeLevel, setSelectedGradeLevel] = useState(null);
   const [selectedAdviser, setSelectedAdviser] = useState("No Filter");
   const [searchSectionName, setSearchSection] = useState("");
   const [sortByGradeLevel, setSortByGradeLevel] = useState("No Filter");
   const [sortByAdviser, setSortByAdviser] = useState("No Filter");
   const [sortBySection, setSortBySection] = useState("No Filter");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,14 +62,34 @@ const AdminManageSectionPage = () => {
 
   const sortingOptions = ["No Filter", "Ascending", "Descending"];
 
-  // Fetch data when school year changes or on mount
+  // Fetch school years when component mounts
   useEffect(() => {
-    fetchSections(selectedSchoolYear);
-  }, [selectedSchoolYear, fetchSections]);
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          // Set default to first year (likely current)
+          setSelectedSchoolYear(years[0]);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoading(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
 
+  // Fetch data when school year changes
   useEffect(() => {
-    fetchAvailableAdvisers(selectedSchoolYear);
-  }, [selectedSchoolYear, fetchAvailableAdvisers]);
+    if (selectedSchoolYear) {
+      fetchSections(selectedSchoolYear);
+      fetchAvailableAdvisers(selectedSchoolYear);
+    }
+  }, [selectedSchoolYear, fetchSections, fetchAvailableAdvisers]);
 
   useEffect(() => {
     getTeachers();
@@ -77,10 +100,6 @@ const AdminManageSectionPage = () => {
     setCurrentPage(1);
   }, [selectedGradeLevel, selectedAdviser, searchSectionName, sortByGradeLevel, sortByAdviser, sortBySection]);
 
-  const handleSliderChange = (value) => {
-    setStudentCount(value);
-  };
-
   const handleSearchSection = (value) => {
     setSearchSection(value);
     setCurrentPage(1); // Reset to first page on search
@@ -90,8 +109,8 @@ const AdminManageSectionPage = () => {
   const openAddSectionModal = () => {
     if(availableAdvisers.length === 0){
       toast.error("Cannot add new section: No advisers available");
-      return
-    };
+      return;
+    }
     setCurrentSection(null);
     setModalSectionName("");
     setModalGradeLevel(gradeLevels[0]?.value || null);
@@ -282,6 +301,15 @@ const AdminManageSectionPage = () => {
     return filteredSections.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredSections, currentPage, itemsPerPage, isShowingAll]);
 
+  // If loading, show loader
+  if (isGettingSchoolYears || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <Navbar />
@@ -294,9 +322,11 @@ const AdminManageSectionPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <Dropdown
               label="School Year"
-              options={schoolYears.map((year) => year.name)}
-              selected={selectedSchoolYear}
-              setSelected={setSelectedSchoolYear}
+              options={schoolYears}
+              selected={selectedSchoolYear || ""}
+              setSelected={(year) => {
+                setSelectedSchoolYear(year);
+              }}
             />
             <Dropdown
               label="Grade Level"

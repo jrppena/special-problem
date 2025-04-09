@@ -7,15 +7,17 @@ import toast from "react-hot-toast";
 
 import { useStudentStore } from "../../store/useStudentStore";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useConfigStore } from "../../store/useConfigStore";
+import { Loader } from "lucide-react";
 
 const StudentGradesViewPage = () => {
-  // Dummy data constants
-  const schoolYears = [
-    { name: "2024-2025" },
-    { name: "2023-2024" },
-    { name: "2022-2023" },
-    { name: "2021-2022" },
-  ];
+  // Add ConfigStore for school years
+  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  
+  // States for school years and loading
+  const [schoolYears, setSchoolYears] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
+  const [isLoadingSchoolYears, setIsLoadingSchoolYears] = useState(true);
 
   const quarterOptions = [
     { value: "all", label: "All Quarters" },
@@ -25,7 +27,6 @@ const StudentGradesViewPage = () => {
     { value: "Q4", label: "Quarter 4" },
   ];
 
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState(schoolYears[0].name);
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedQuarter, setSelectedQuarter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +41,26 @@ const StudentGradesViewPage = () => {
   } = useStudentStore();
   const { authUser } = useAuthStore();
 
+  // Fetch school years on component mount
+  useEffect(() => {
+    const getSchoolYears = async () => {
+      try {
+        const years = await fetchSchoolYears();
+        if (years && years.length > 0) {
+          setSchoolYears(years);
+          setSelectedSchoolYear(years[0]); // Set first school year as default
+          setIsLoadingSchoolYears(false);
+        }
+      } catch (error) {
+        console.error("Error fetching school years:", error);
+        toast.error("Failed to load school years");
+        setIsLoadingSchoolYears(false);
+      }
+    };
+    
+    getSchoolYears();
+  }, [fetchSchoolYears]);
+
   // Clear grades when component mounts and unmounts
   useEffect(() => {
     // Clear grades data when component mounts to avoid seeing stale data
@@ -53,6 +74,8 @@ const StudentGradesViewPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedSchoolYear || !authUser?._id) return;
+      
       setIsLoading(true);
       try {
         // First get enrolled classes
@@ -73,7 +96,7 @@ const StudentGradesViewPage = () => {
     };
 
     fetchData();
-  }, [selectedSchoolYear, authUser._id, getEnrolledClasses, getEnrolledClassesGrades]);
+  }, [selectedSchoolYear, authUser?._id, getEnrolledClasses, getEnrolledClassesGrades]);
 
   const dynamicClassOptions =
     classes.length > 0
@@ -105,7 +128,16 @@ const StudentGradesViewPage = () => {
   };
 
   // Combined loading state to show loader in both scenarios
-  const showLoading = isLoading || isGettingGrades;
+  const showLoading = isLoadingSchoolYears || isGettingSchoolYears || isLoading || isGettingGrades;
+
+  // If loading school years, show loader
+  if (isGettingSchoolYears || isLoadingSchoolYears) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader className="size-10 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -117,9 +149,11 @@ const StudentGradesViewPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Dropdown
               label="School Year"
-              options={schoolYears.map((year) => year.name)}
-              selected={selectedSchoolYear}
-              setSelected={setSelectedSchoolYear}
+              options={schoolYears}
+              selected={selectedSchoolYear || ""}
+              setSelected={(year) => {
+                setSelectedSchoolYear(year);
+              }}
             />
 
             {classes.length > 0 && (
@@ -153,7 +187,7 @@ const StudentGradesViewPage = () => {
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You are not enrolled in any classes for the selected school year.
           </div>
-        ) : showLoading ? (
+        ) : isLoading || isGettingGrades ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
             <p className="text-gray-500">Loading grades...</p>
           </div>

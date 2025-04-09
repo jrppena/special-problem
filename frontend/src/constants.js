@@ -27,6 +27,13 @@ const adminFunctions = [
         "icon": "/assets/student/grades.svg", 
         "button-name": "Manage Grades",
         "route": "/admin/manage-grades"
+    },
+    {
+        "name": "Configuration",
+        "description": "Manage system configurations and settings",
+        "icon": "/assets/admin/setting.png",
+        "button-name": "Manage Configurations",
+        "route": "/admin/manage-configurations"
     }
     
 ]
