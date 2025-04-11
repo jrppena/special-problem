@@ -22,7 +22,7 @@ const Navbar = () => {
           <img
             src={authUser.profilePic || "/avatar.png"}
             alt="User"
-            className="w-8 h-8 rounded-full sm:w-10 sm:h-10"
+            className="w-8 h-8 rounded-full object-cover sm:w-10 sm:h-10"
           />
         </button>
 
@@ -34,14 +34,16 @@ const Navbar = () => {
               GSHS
             </span>
             
-            {/* Logo */}
-            <div className="relative flex items-center">
+            {/* Logo - Fixed aspect ratio with min-width to prevent squishing */}
+            <div className="relative flex items-center justify-center px-1 sm:px-3">
               <div className="hidden sm:block absolute -left-3 w-px h-8 bg-gradient-to-b from-gray-300 to-transparent"></div>
-              <img
-                src="/gshs-logo.png"
-                alt="GSHS Logo"
-                className="h-10 w-10 transform transition duration-300 hover:scale-105 sm:h-14 sm:w-14"
-              />
+              <div className="flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center">
+                <img
+                  src="/gshs-logo.png"
+                  alt="GSHS Logo"
+                  className="w-full h-full object-contain transform transition duration-300 hover:scale-105"
+                />
+              </div>
               <div className="hidden sm:block absolute -right-3 w-px h-8 bg-gradient-to-b from-gray-300 to-transparent"></div>
             </div>
             

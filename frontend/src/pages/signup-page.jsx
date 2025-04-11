@@ -32,7 +32,7 @@ function SignupPage() {
           ...prevData,
           gradeLevel: selectedGradeLevel,
       }));
-  }, [selectedGradeLevel]);
+    }, [selectedGradeLevel]);
 
   
     const {signup} = useAuthStore();
@@ -123,10 +123,8 @@ function SignupPage() {
 
         if(success) {
           console.log(formData);
-          signup(formData)
-
-        };
-
+          signup(formData);
+        }
     }
 
     
@@ -137,7 +135,7 @@ function SignupPage() {
         <section className="relative flex h-32 items-end bg-gray-900 lg:col-span-5 lg:h-full xl:col-span-6">
           <img
             alt=""
-            src= {schoolImage}
+            src={schoolImage}
             className="absolute inset-0 h-full w-full object-cover opacity-80"
           />
         </section>
@@ -145,130 +143,141 @@ function SignupPage() {
         {/* Right Section with Form */}
         <main className="flex items-center justify-center px-8 py-8 sm:px-12 lg:col-span-7 lg:px-16 lg:py-12 xl:col-span-6">
           <div className="max-w-xl lg:max-w-3xl">
-            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl md:text-5xl">
-              Create an Account
-            </h1>
+            {/* Enhanced Logo and School Name - Made more prominent */}
+            <div className="flex flex-col items-center justify-center mb-12">
+              <img src="/gshs-logo.png" alt="GSHS Logo" className="h-32 w-32 object-contain" />
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mt-4">
+                GOA SCIENCE HIGH SCHOOL
+              </h2>
+              <p className="text-xl font-medium text-blue-600 mt-1">ACADBRIDGE</p>
+            </div>
 
-            <p className="mt-4 text-lg leading-relaxed text-gray-600">
-              Join **AcadBridge** to stay updated on grades and school events.
-            </p>
+            {/* Form section with clear visual separation */}
+            <div className="mt-8 border-t pt-8">
+              <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl text-center">
+                Create an Account
+              </h1>
 
-            <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-6 gap-6">
-              {/* First Name */}
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="FirstName" className="block text-lg font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  type="text"
-                  id="FirstName"
-                  name="first_name"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                  className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <p className="mt-3 text-base leading-relaxed text-gray-600 text-center">
+                Join <strong>AcadBridge</strong> to stay updated on grades and school events.
+              </p>
 
-              {/* Last Name */}
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="LastName" className="block text-lg font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  id="LastName"
-                  name="last_name"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                  className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-6 gap-6">
+                {/* First Name */}
+                <div className="col-span-6 sm:col-span-3">
+                  <label htmlFor="FirstName" className="block text-lg font-medium text-gray-700">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="FirstName"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                    className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
 
-              {/* Email */}
-              <div className="col-span-6">
-                <label htmlFor="Email" className="block text-lg font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="Email"
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-                
-             {/* Password */}
-            <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="Password" className="block text-lg font-medium text-gray-700">
+                {/* Last Name */}
+                <div className="col-span-6 sm:col-span-3">
+                  <label htmlFor="LastName" className="block text-lg font-medium text-gray-700">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="LastName"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                    className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="col-span-6">
+                  <label htmlFor="Email" className="block text-lg font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="Email"
+                    name="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                  
+                {/* Password */}
+                <div className="col-span-6 sm:col-span-3">
+                  <label htmlFor="Password" className="block text-lg font-medium text-gray-700">
                     Password
-                </label>
-                <div className="relative">
+                  </label>
+                  <div className="relative">
                     <input
-                    type={showPassword ? "text" : "password"}
-                    id="Password"
-                    name="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                      type={showPassword ? "text" : "password"}
+                      id="Password"
+                      name="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                     />
 
                     {/* Eye Toggle Button for Password */}
                     <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
                     >
-                    {showPassword ? (
+                      {showPassword ? (
                         <EyeOff className="size-5" />
-                    ) : (
+                      ) : (
                         <Eye className="size-5" />
-                    )}
+                      )}
                     </button>
+                  </div>
                 </div>
-            </div>
 
-            {/* Confirm Password */}
-            <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="PasswordConfirmation" className="block text-lg font-medium text-gray-700">
+                {/* Confirm Password */}
+                <div className="col-span-6 sm:col-span-3">
+                  <label htmlFor="PasswordConfirmation" className="block text-lg font-medium text-gray-700">
                     Confirm Password
-                </label>
-                <div className="relative">
+                  </label>
+                  <div className="relative">
                     <input
-                    type={showPasswordConfirmation ? "text" : "password"}
-                    id="PasswordConfirmation"
-                    name="password_confirmation"
-                    value={formData.password_confirmation}
-                    onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
-                    className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                      type={showPasswordConfirmation ? "text" : "password"}
+                      id="PasswordConfirmation"
+                      name="password_confirmation"
+                      value={formData.password_confirmation}
+                      onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                      className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                     />
 
                     {/* Eye Toggle Button for Confirm Password */}
                     <button
-                    type="button"
-                    onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
-                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                      type="button"
+                      onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
                     >
-                    {showPasswordConfirmation ? (
+                      {showPasswordConfirmation ? (
                         <EyeOff className="size-5" />
-                    ) : (
+                      ) : (
                         <Eye className="size-5" />
-                    )}
+                      )}
                     </button>
-            </div>
-            </div>
+                  </div>
+                </div>
 
 
-              <div className="col-span-6">
-                <label className="block text-lg font-medium text-gray-700">Select Role</label>
-                <div className="mt-2 flex gap-4">
+                <div className="col-span-6">
+                  <label className="block text-lg font-medium text-gray-700">Select Role</label>
+                  <div className="mt-2 flex gap-4">
                     {/* Student Role */}
                     <label
-                    htmlFor="role-student"
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm cursor-pointer"
+                      htmlFor="role-student"
+                      className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm cursor-pointer"
                     >
-                    <input
+                      <input
                         id="role-student"
                         type="radio"
                         name="role"
@@ -278,16 +287,16 @@ function SignupPage() {
                           setFormData(prevState => ({ ...prevState, role: "Student" }));
                         }}
                         className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-lg font-medium text-gray-900">Student</span>
+                      />
+                      <span className="text-lg font-medium text-gray-900">Student</span>
                     </label>
 
                     {/* Teacher Role */}
                     <label
-                    htmlFor="role-teacher"
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm cursor-pointer"
+                      htmlFor="role-teacher"
+                      className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm cursor-pointer"
                     >
-                    <input
+                      <input
                         id="role-teacher"
                         type="radio"
                         name="role"
@@ -296,65 +305,67 @@ function SignupPage() {
                         onChange={() => {
                           setRole("Teacher");
                           setFormData(prevState => ({ ...prevState, role: "Teacher" }));
-                      }}
+                        }}
                         className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-lg font-medium text-gray-900">Teacher</span>
+                      />
+                      <span className="text-lg font-medium text-gray-900">Teacher</span>
                     </label>
-                </div>
+                  </div>
                 </div>
 
                  {/* New Student or Transferee */}
                  {role === "Student" && (
-                                <div className="col-span-6">
-                                    <label className="block text-lg font-medium text-gray-700">Are you a new student or a transferee?</label>
-                                    <select className="mt-2 w-full p-3 border rounded-md" value={isNewStudent} onChange={(e) => setIsNewStudent(e.target.value)}>
-                                        <option value="New">New Student</option>
-                                        <option value="Transferee">Transferee</option>
-                                    </select>
-                                </div>
-                            )}
-
-                            {/* Transferee Grade Level Selection */}
-                            {role === "Student" && isNewStudent === "Transferee" && (
-                                <div className="col-span-6">
-                                    <label className="block text-lg font-medium text-gray-700">Select Current Grade Level</label>
-                                    <select className="mt-2 w-full p-3 border rounded-md" value={selectedGradeLevel} onChange={(e) => setSelectedGradeLevel(e.target.value)}>
-\                                        {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
-                                            <option key={grade} value={grade}>{grade}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-
-
-              {/* Buttons */}
-              <div className="col-span-6 sm:flex sm:items-center sm:gap-4">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-16 py-4 text-lg font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:ring-2 focus:ring-blue-500"
-                disabled={isSigningUp}
-                >
-                {isSigningUp ? (
-                    <>
-                    <Loader2 className="size-5 animate-spin" />
-                    Loading...
-                    </>
-                ) : (
-                    "Create Account"
+                    <div className="col-span-6">
+                        <label className="block text-lg font-medium text-gray-700">Are you a new student or a transferee?</label>
+                        <select className="mt-2 w-full p-3 border rounded-md" value={isNewStudent} onChange={(e) => setIsNewStudent(e.target.value)}>
+                            <option value="New">New Student</option>
+                            <option value="Transferee">Transferee</option>
+                        </select>
+                    </div>
                 )}
-              </button>
 
-                <p className="mt-4 text-lg text-gray-600 sm:mt-0">
-                  Already have an account?{" "}
-                  <a href="/login" className="text-blue-600 underline">
-                    Log in
-                  </a>
-                  .
-                </p>
-              </div>
-            </form>
+                {/* Transferee Grade Level Selection */}
+                {role === "Student" && isNewStudent === "Transferee" && (
+                    <div className="col-span-6">
+                        <label className="block text-lg font-medium text-gray-700">Select Current Grade Level</label>
+                        <select className="mt-2 w-full p-3 border rounded-md" value={selectedGradeLevel} onChange={(e) => setSelectedGradeLevel(e.target.value)}>
+                            <option value="">Select Grade Level</option>
+                            {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
+                                <option key={grade} value={grade}>{grade}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+
+
+                {/* Buttons */}
+                <div className="col-span-6 sm:flex sm:items-center sm:gap-4">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-16 py-4 text-lg font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    disabled={isSigningUp}
+                  >
+                    {isSigningUp ? (
+                      <>
+                        <Loader2 className="size-5 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </button>
+
+                  <p className="mt-4 text-lg text-gray-600 sm:mt-0">
+                    Already have an account?{" "}
+                    <a href="/login" className="text-blue-600 underline">
+                      Log in
+                    </a>
+                    .
+                  </p>
+                </div>
+              </form>
+            </div>
           </div>
         </main>
       </div>
