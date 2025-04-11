@@ -10,6 +10,7 @@ const studentSchema = new mongoose.Schema({
       section: { type: mongoose.Schema.Types.ObjectId, ref: "Section" }, // ✅ Past Section
     }
   ],
+  academicStatus:{ type: String, enum: ["Regular","Graduated"] }, // ✅ Status
 });
 
 const Student = User.discriminator("Student", studentSchema);

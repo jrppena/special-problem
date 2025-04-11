@@ -190,7 +190,8 @@ const updateCurrentSchoolYear = async (req, res) => {
     // // If no missing grades, proceed with updating the school year and promoting students
     
     // // 1. Promote all students except grade 12
-    const studentsToUpdate = await Student.find({ gradeLevel: { $lt: 12 } });
+    const studentsToUpdate = await Student.find({ gradeLevel: { $lt: 12 }});
+
     
     // Use bulkWrite for more efficient database operations
     const bulkOps = studentsToUpdate.map(student => ({
@@ -202,6 +203,15 @@ const updateCurrentSchoolYear = async (req, res) => {
     
     const bulkResult = await Student.bulkWrite(bulkOps);
     
+
+    const graduatedStudents = await Student.find({ gradeLevel: 12 });
+    
+    await Promise.all(graduatedStudents.map(async (student) => {
+      student.academicStatus = "Graduated";
+      await student.save();
+      }
+    ));
+
     // 2. Update application config with new school year
     const configUpdate = await Config.findOneAndUpdate(
       {}, 
