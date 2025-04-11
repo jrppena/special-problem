@@ -135,6 +135,30 @@ const UserProfile = () => {
               />
             </div>
 
+            
+            {authUser.role === "Student" && (
+                <>
+                  <div className="col-span-3 md:col-span-1">
+                    <label className="block text-lg font-medium text-gray-700">Current Grade Level</label>
+                    <input
+                      type="text"
+                      value={authUser.gradeLevel}
+                      className="mt-1 w-full rounded-md border-2 border-gray-300 bg-gray-200 text-lg text-gray-700 py-3 px-4 shadow-md cursor-not-allowed"
+                      disabled
+                    />
+                  </div>
+                  <div className="col-span-3 md:col-span-1">
+                    <label className="block text-lg font-medium text-gray-700">Academic Status</label>
+                    <input
+                      type="text"
+                      value={authUser.academicStatus || "N/A"}
+                      className="mt-1 w-full rounded-md border-2 border-gray-300 bg-gray-200 text-lg text-gray-700 py-3 px-4 shadow-md cursor-not-allowed"
+                      disabled
+                    />
+                  </div>
+                </>
+              )}
+
             {/* Contact Number */}
             <div className="col-span-3 md:col-span-1">
               <label className="block text-lg font-medium text-gray-700">Contact Number</label>
@@ -160,6 +184,7 @@ const UserProfile = () => {
                 className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
 
             {/* Update Button */}
             <div className="col-span-3 flex justify-center mt-6">
