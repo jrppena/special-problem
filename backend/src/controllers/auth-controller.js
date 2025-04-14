@@ -59,7 +59,7 @@ const login = async (req, res) => {
     try {
         const user = await User.findOne({email});
         if(!user){
-            return res.status(40).json({message: "Invalid Credentials"});
+            return res.status(400).json({message: "Invalid Credentials"});
         }
         
         const isPasswordCorrect = user.password.startsWith('$2')
