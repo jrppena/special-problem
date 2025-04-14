@@ -9,7 +9,7 @@ router.get('/get/available-students', protectRoute, teacherSpecificRoute, teache
 router.post('/add/student-to-section', protectRoute, teacherSpecificRoute, teacherRoutes.addStudentToSection);
 router.delete('/remove/student-from-section', protectRoute, teacherSpecificRoute, teacherRoutes.removeStudentFromSection);
 router.get('/get/assigned-classes', protectRoute, teacherSpecificRoute, teacherRoutes.getAssignedClasses);
-router.post('/update/student-grades', protectRoute, teacherSpecificRoute, teacherRoutes.updateStudentGrades);
+router.post('/update/student-grades', protectRoute, teacherOrAdminSpecificRoute, teacherRoutes.updateStudentGrades);
 router.get('/get/class-grades', protectRoute, teacherOrAdminSpecificRoute, teacherRoutes.getClassGrades);
 router.get('/get/chart-data', protectRoute, teacherSpecificRoute, teacherRoutes.getChartData);
 router.get('/get/specific-student-grades',protectRoute, teacherSpecificRoute, teacherRoutes.getSpecificStudentGrades)

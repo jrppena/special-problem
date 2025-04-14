@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "seed": "node src/seeds/teacher.seed.js",
     "initConfig": "node src/config/initConfig.js",
-    "test:protectRoute": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/protectRoute.test.js --testTimeout=30000 --forceExit --verbose"
+    "test:protectRoute": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/protectRoute.test.js --testTimeout=30000 --forceExit --verbose",
+    "test:roleBasedAccessControl": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/roleBasedAccessControl.test.js --testTimeout=30000 --forceExit --verbose",
+    "test:hashedPassword": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/hashedPassword.test.js --testTimeout=30000 --forceExit --verbose"
 
   },
   "author": "",
