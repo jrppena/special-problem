@@ -2,101 +2,118 @@ import Student from "../models/student.model.js"; // adjust the path as needed
 import Section from "../models/section.model.js";
 import Class from "../models/class.model.js";
 import Grade from "../models/grade.model.js";
+import mongoose from "mongoose";
 
 
 
-const getEnrolledClasses = async (req,res) => {
-    const studentId = req.query.studentId;
+const getEnrolledClasses = async (req, res) => {
+    const studentId = req.user._id;
     const schoolYear = req.query.schoolYear;
-
+    
     try {
-        const section = await Section.findOne({ students: { $in: [studentId] }, schoolYear: schoolYear })
-        
-        if(!section){
-            return res.status(204).json({message: "No section found for the student for the given school year", classes: []});
+        const section = await Section.findOne({
+            students: { $in: [studentId] },
+            schoolYear
+        });
+
+        if (!section) {
+            return res.status(200).json({ message: "No section found for the student for the given school year", classes: [] });
         }
 
-       
-        const classes = await Class.find({ sections:{$in: [section._id]}, schoolYear:schoolYear});
-        if(!classes){
-            return res.status(204).json({message: "No classes found for the student for the given school year", classes: []});
+        const classes = await Class.find({
+            sections: { $in: [section._id] },
+            schoolYear
+        });
+
+        if (!classes || classes.length === 0) {
+            return res.status(200).json({ message: "No classes found for the student for the given school year", classes: [] });
         }
 
         return res.status(200).json(classes);
-     
 
-    }catch(error){
-        console.log("Error in getEnrolledClasses: ", error);
-        return res.status(500).json({message: "Something went wrong"});
+    } catch (error) {
+        console.error("Error in getEnrolledClasses:", error);
+        return res.status(500).json({ message: "Something went wrong" });
     }
-}
+};
 
-const getEnrolledClassesGrades = async(req,res) => {
+
+const getEnrolledClassesGrades = async (req, res) => {
     const classes = req.query.classes;
-    const student = req.query.student;
+    const student = req.user._id;
     const schoolYear = req.query.schoolYear;
 
     try {
         const dummyGradesData = [];
-        let counter = 0;
-        // Iterate over each class
+
         for (const classItem of classes) {
-            // Fetch grades for the given class, student, and school 
+            const specificClass = await Class.findOne({ _id: classItem._id, schoolYear: schoolYear }).populate("sections").exec();
+
+            if (!specificClass) {
+                return res.status(200).json({ message: "Class does not exist", data: [] });
+            }
+
+            if(!specificClass.sections || specificClass.sections.length === 0) {
+                return res.status(200).json({ message: "No sections found for the class", data: [] });
+            }
+
+            if(!specificClass.sections.some(section => section.students.includes(student))) {
+                return res.status(403).json({ message: "Forbidden: Student not enrolled in this class", data: [] });
+            }
+            
             
             const grades = await Grade.find({
-                class: classItem._id, 
-                student: student, 
+                class: classItem._id,
+                student: student,
             });
-    
-            // Initialize the object for this class
+
             const gradeMapData = {
                 classId: classItem._id,
-                className: classItem.subjectName, // Using subjectName as the class name
-                grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" }, // Set default grades as "-"
-                average: "-" // Default average
+                className: classItem.subjectName,
+                grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" },
+                average: "-"
             };
-            
-            // Populate grades for each grading period (Q1, Q2, Q3, Q4)
+
             let totalGrades = 0;
             let validGradesCount = 0;
-            
+
             grades.forEach(grade => {
                 if (gradeMapData.grades.hasOwnProperty(grade.gradingPeriod)) {
-                const gradeValue = grade.gradeValue;
-            
-                // Check if the gradeValue is a valid number
-                if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
-                    gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString(); // Convert grade to string
-                    totalGrades += gradeValue; // Add to total grades
-                    validGradesCount++; // Increment valid grades count
-                }
+                    const gradeValue = grade.gradeValue;
+                    if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
+                        gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString();
+                        totalGrades += gradeValue;
+                        validGradesCount++;
+                    }
                 }
             });
-            
-            // Calculate the average if there are valid grades
+
             if (validGradesCount > 0) {
-                gradeMapData.average = (totalGrades / validGradesCount).toFixed(2); // Round to 2 decimal places
-            } else {
-                gradeMapData.average = "-"; // No valid grades available
+                gradeMapData.average = (totalGrades / validGradesCount).toFixed(2);
             }
-  
-  
-    
-            // Push the gradeMapData object to dummyGradesData
+
             dummyGradesData.push(gradeMapData);
         }
-        
-        res.status(200).json(dummyGradesData);
+
+        return res.status(200).json(dummyGradesData);
+
     } catch (err) {
-        console.error("Error:", err);
+        console.error("Error in getEnrolledClassesGrades:", err);
+        return res.status(500).json({ message: "Something went wrong." });
     }
-}
+};
+
 
 const generateChartData = async (req, res) => {
-    const { studentId, schoolYear, dataType, selectedSubject, selectedQuarter } = req.query;
+    const {schoolYear, dataType, selectedSubject, selectedQuarter } = req.query;
+
+    const studentId = req.user._id; 
+
+    if(!studentId || !schoolYear || !dataType) {
+        return res.status(400).json({ message: "Missing required parameters" });
+    }
 
     try {
-        // Get all grades for the student in the selected school year
         const section = await Section.findOne({ 
             students: { $in: [studentId] }, 
             schoolYear: schoolYear 

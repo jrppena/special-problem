@@ -1,6 +1,5 @@
 import Config from "../models/config.model.js";
 import Class from "../models/class.model.js";
-import Section from "../models/section.model.js";
 import Student from "../models/student.model.js";
 import Grade from "../models/grade.model.js";
 
@@ -42,14 +41,18 @@ const getCurrentSchoolYear = async (req, res) => {
 }
 
 const updateCurrentSchoolYear = async (req, res) => {
-  if (req.user.role !== "Admin") {
-    return res.status(403).json({ message: "Unauthorized" });
-  }
 
   try {
     // Get the current school year
-    const currentSchoolYear = req.body.currentSchoolYear || "2023-2024"; // Fallback value
     
+    const config = await Config.findOne().select("currentSchoolYear");
+
+    if (!config || !config.currentSchoolYear) {
+      return res.status(404).json({ message: "No current school year found" });
+    }
+    
+    const currentSchoolYear = config.currentSchoolYear;
+
     // Extract the years from the current school year
     const [startYear, endYear] = currentSchoolYear.split('-').map(Number);
     

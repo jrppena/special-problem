@@ -48,12 +48,28 @@ const addStudentToSection =  async (req, res) => {
     const { sectionId, studentIds, schoolYear } = req.body.data;
   
     try {
+        
         // Add students to the section in the database
-        const updatedSection = await Section.findByIdAndUpdate(
-          sectionId,
-          { $push: { students: { $each: studentIds } } },
-          { new: true } // Return the updated document
-        ).populate('students'); // Populate the students if needed
+        const updatedSection = await Section.findOneAndUpdate(
+          {
+            _id: sectionId,
+            advisers: { $in: [req.user._id] }, // Ensure the user is an adviser of the section
+          },
+          {
+            $push: { students: { $each: studentIds } }
+          },
+          {
+            new: true // Return the updated document
+          }
+        ).populate('students'); // Populate the students
+
+        if(!updatedSection) {
+            return res.status(404).json({ success: false, message: 'Section not found' });
+        }
+        
+        if(updatedSection.advisers.includes(req.user._id) === false){
+            return res.status(403).json({ success: false, message: "Forbidden: You are not an adviser of this section" });
+        }
     
         res.json({ success: true, updatedSection });
       } catch (error) {
@@ -63,11 +79,17 @@ const addStudentToSection =  async (req, res) => {
 
   const removeStudentFromSection = async (req, res) => {
     const { sectionId, studentId } = req.body;
-  
+    const userId = req.user._id; // Get the authenticated user's ID from the request
+    
     try {
-      const section = await Section.findById(sectionId).populate('students');
+      const section = await Section.find(sectionId).populate('students');
+
       if (!section) {
         return res.status(404).json({ success: false, message: 'Section not found' });
+      }
+
+      if(!section.advisers.includes(userId)) {
+        return res.status(403).json({ success: false, message: 'Forbidden: You are not an adviser of this section' });
       }
       
       const studentExistsInSection = section.students.some(student => student._id.toString() === studentId.toString());
@@ -97,9 +119,9 @@ const addStudentToSection =  async (req, res) => {
   };
 
   const getAssignedClasses = async (req, res) => {
-    const userId = req.query.userId;
+    const userId = req.user._id;
     const schoolYear = req.query.schoolYear;
-
+   
     try {
         const classes = await Class.find({ teachers: { $in: [userId] }, schoolYear: schoolYear })
           .populate({
@@ -109,7 +131,7 @@ const addStudentToSection =  async (req, res) => {
               model: 'Student' // Ensure correct model reference
             }
         });
-
+        
         res.status(200).json(classes);
     } catch (error) {
         res.status(404).json({ message: error.message });
@@ -121,6 +143,7 @@ const addStudentToSection =  async (req, res) => {
     const gradingPeriod = req.query.gradingPeriod;
     const sectionId = req.query.sectionId;
     const schoolYear = req.query.schoolYear;
+    const userId = req.user._id;
 
     try {
         // Fetch the section with populated students
@@ -129,6 +152,17 @@ const addStudentToSection =  async (req, res) => {
         if (!section) {
             return res.status(404).json({ message: "Section not found" });
         }
+
+        const assignedClass = await Class.findById(classId).populate('teachers', '_id');
+
+        if(!assignedClass) {
+            return res.status(404).json({ message: "Class not found" });
+        }
+
+        if (!assignedClass.teachers.some(teacher => teacher._id.equals(req.user._id)) && req.user.role === "Teacher") {
+          return res.status(403).json({ message: "Forbidden: You are not authorized to view the class grades of this class" });
+        }
+
 
         // Initialize gradeMap with default values for all students in the section
         const gradeMap = {};
@@ -196,10 +230,16 @@ const addStudentToSection =  async (req, res) => {
 
     const updateStudentGrades = async (req, res) => {
       try {
-          const { selectedClass, editedGrades, section } = req.body;
+          const { selectedClass, editedGrades } = req.body;
+          const userId = req.user._id; // Get the authenticated user's ID from the request
+
 
           if (!selectedClass || !editedGrades || typeof editedGrades !== "object") {
               return res.status(400).json({ error: "Invalid input data." });
+          }
+
+          if(!selectedClass.teachers.includes(userId) && req.user.role === "Teacher") {
+              return res.status(403).json({ message: "Forbidden: You are not authorized to update grades for this class" });
           }
 
           const bulkOperations = [];
@@ -264,7 +304,16 @@ const addStudentToSection =  async (req, res) => {
 // In your teacher.controller.js
 const getChartData = async (req, res) => {
   const { classId, gradingPeriod, dataType, sectionId, studentIds } = req.query;
+  const userId = req.user._id; // Get the authenticated user's ID from the request
+
   try {
+
+    const assignedClass = await Class.findById(classId).populate('teachers', '_id');
+
+    if (!assignedClass.teachers.some(teacher => teacher._id.equals(userId))) {
+      return res.status(403).json({ message: "Forbidden: You are not authorized to view the class grades of this class" });
+    }
+
     if (dataType === "singleSectionPerformance") {
       // Ensure a sectionId is provided
       if (!sectionId) {
@@ -431,13 +480,29 @@ const getChartData = async (req, res) => {
     const studentId = req.query.studentId;
     const sectionId = req.query.sectionId;
     const schoolYear = req.query.schoolYear;
+    const userId = req.user._id; // Get the authenticated user's ID from the request
+    
 
     try {
+
+        const section = await Section.findById(sectionId).populate('students', '_id');
+
+        if(!section){
+            return res.status(404).json({ message: "Section not found" });
+        }
+
+        if(section.advisers.includes(userId) === false){
+            return res.status(403).json({ message: "Forbidden: You are not an adviser of this section" });
+        } 
         // Fetch classes for the given sectionId and schoolYear
         const classes = await Class.find({
             sections: { $in: [sectionId] },
             schoolYear: schoolYear
         });
+
+        if(!classes){
+            return res.status(404).json({ message: "No classes found for the given section and school year" });
+        }
 
         const dummyGradesData = [];
         const quarterGrades = { Q1: [], Q2: [], Q3: [], Q4: [] };  // To store grades by quarter for overall average calculation
@@ -516,9 +581,11 @@ const getChartData = async (req, res) => {
 const getSectionGrades = async (req, res) => {
   const { sectionId, schoolYear } = req.query;
 
+  const userId = req.user._id; // Get the authenticated user's ID from the request
+
   try {
     // Fetch the section and its students in one query, no need for separate calls
-    const section = await Section.findById(sectionId)
+    const section = await Section.findOne({_id:sectionId, schoolYear: schoolYear})
       .populate({
         path: 'students',
         select: '_id firstName lastName', // Select only the fields needed
@@ -530,6 +597,10 @@ const getSectionGrades = async (req, res) => {
       return res.status(404).json({
         message: "No students found in this section",
       });
+    }
+
+    if(!section.advisers.includes(userId)) {
+      return res.status(403).json({ message: "Forbidden: You are not an adviser of this section" });
     }
 
     // Fetch the grades for all students in the section and classes for the given schoolYear in one query

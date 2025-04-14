@@ -85,7 +85,6 @@ const getAvailableAdvisers = async (req, res) => {
     try {
       // Get all teacher IDs that are already assigned as advisers in the given school year
       const assignedAdvisers = await Section.distinct("advisers", { schoolYear });
-  
       // Find teachers who are NOT in the assigned advisers list and are 'Verified'
       const availableAdvisers = await Teacher.find({
         _id: { $nin: assignedAdvisers },
@@ -117,7 +116,7 @@ const deleteSelectedSection = async (req, res) => {
 
 
 const getAdviserSections = async (req, res) => {
-    const userId = req.params.id;
+    const userId = req.user._id;
     const schoolYear = req.params.schoolYear; // Read schoolYear from query parameters
 
     try {
