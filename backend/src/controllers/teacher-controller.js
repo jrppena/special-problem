@@ -13,21 +13,6 @@ const getTeachers = async (req, res) => {
     }
 }
 
-const checkIfAdviser = async (req, res) => {
-    const userId = req.params.id;
-
-    try {        
-        const adviser = await Section.findOne({ adviser: userId });
-        if(adviser) {
-            res.status(200).json(adviser);
-        } else {
-            res.status(404).json({ message: 'User is not an adviser' });
-        }
-    } catch (error) {
-        res.status(404).json({ message: error.message });
-    }
-}
-
 const getAvailableStudents = async (req, res) => {
     try {
       // Extract gradeLevel and schoolYear from query parameters
@@ -639,7 +624,6 @@ const getSectionGrades = async (req, res) => {
 
 export const teacherRoutes = {
     getTeachers,
-    checkIfAdviser,
     getAvailableStudents,
     addStudentToSection,
     removeStudentFromSection,

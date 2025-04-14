@@ -1,19 +1,18 @@
 import express from 'express';
 import { teacherRoutes } from "../controllers/teacher-controller.js";
-import { protectRoute } from "../middlewares/auth.middleware.js";
+import { protectRoute, teacherSpecificRoute, teacherOrAdminSpecificRoute, adminSpecificRoute} from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.get('/get', protectRoute, teacherRoutes.getTeachers);
-router.get('/check/if-adviser/:id', protectRoute, teacherRoutes.checkIfAdviser);
-router.get('/get/available-students', protectRoute, teacherRoutes.getAvailableStudents);
-router.post('/add/student-to-section', protectRoute, teacherRoutes.addStudentToSection);
-router.delete('/remove/student-from-section', protectRoute, teacherRoutes.removeStudentFromSection);
-router.get('/get/assigned-classes', protectRoute, teacherRoutes.getAssignedClasses);
-router.post('/update/student-grades', protectRoute, teacherRoutes.updateStudentGrades);
-router.get('/get/class-grades', protectRoute, teacherRoutes.getClassGrades);
-router.get('/get/chart-data', protectRoute, teacherRoutes.getChartData);
-router.get('/get/specific-student-grades',protectRoute, teacherRoutes.getSpecificStudentGrades)
-router.get('/get/section-grades', protectRoute, teacherRoutes.getSectionGrades);
+router.get('/get', protectRoute, adminSpecificRoute, teacherRoutes.getTeachers);
+router.get('/get/available-students', protectRoute, teacherSpecificRoute, teacherRoutes.getAvailableStudents);
+router.post('/add/student-to-section', protectRoute, teacherSpecificRoute, teacherRoutes.addStudentToSection);
+router.delete('/remove/student-from-section', protectRoute, teacherSpecificRoute, teacherRoutes.removeStudentFromSection);
+router.get('/get/assigned-classes', protectRoute, teacherSpecificRoute, teacherRoutes.getAssignedClasses);
+router.post('/update/student-grades', protectRoute, teacherSpecificRoute, teacherRoutes.updateStudentGrades);
+router.get('/get/class-grades', protectRoute, teacherOrAdminSpecificRoute, teacherRoutes.getClassGrades);
+router.get('/get/chart-data', protectRoute, teacherSpecificRoute, teacherRoutes.getChartData);
+router.get('/get/specific-student-grades',protectRoute, teacherSpecificRoute, teacherRoutes.getSpecificStudentGrades)
+router.get('/get/section-grades', protectRoute, teacherSpecificRoute, teacherRoutes.getSectionGrades);
 
 export default router;

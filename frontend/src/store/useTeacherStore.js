@@ -1,9 +1,6 @@
 import {create} from 'zustand';
 import {axiosInstance} from '../lib/axios';
 import toast from 'react-hot-toast';
-import {useSectionStore} from './useSectionStore';
-import { schoolYears } from '../constants';
-
 
 export const useTeacherStore = create((set) => ({
     teachers: [],
@@ -26,16 +23,6 @@ export const useTeacherStore = create((set) => ({
             toast.error('Failed to fetch teachers');
         }finally{
             set({isFetchingTeachers: false});
-        }
-    },
-
-    checkIfAdviser: async (userId) => {
-        try{
-            const response = await axiosInstance.get(`/teacher/check/if-adviser/${userId}`);
-            set({isAdviser: true});
-        }catch(error){
-            console.log('Error in isAdviser: ', error);
-            toast.error('Failed to check if user is an adviser');
         }
     },
     
