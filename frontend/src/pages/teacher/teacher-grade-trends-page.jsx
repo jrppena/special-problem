@@ -144,6 +144,7 @@ const TeacherGradeTrendsPage = () => {
         }
         response = await getChartData(
           selectedSubject._id,
+          selectedSchoolYear,
           selectedQuarter,
           selectedSection,
           dataType,
@@ -152,6 +153,7 @@ const TeacherGradeTrendsPage = () => {
       } else if (dataType === "sectionsPerformance") {
         response = await getChartData(
           selectedSubject._id,
+          selectedSchoolYear,
           selectedQuarter,
           null,
           dataType

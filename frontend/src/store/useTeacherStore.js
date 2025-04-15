@@ -55,7 +55,7 @@ export const useTeacherStore = create((set) => ({
 
     removeStudentFromSection: async (data) => {
         try {
-            const response = await axiosInstance.delete('/teacher/remove/student-from-section', {data});
+            const response = await axiosInstance.delete('e', {data});
 
             if(response.message){
                 toast.error(response.message);
@@ -110,10 +110,10 @@ export const useTeacherStore = create((set) => ({
         }
     },
 
-    getChartData: async (classId, gradingPeriod, section, dataType, selectedStudents = []) => {
+    getChartData: async (classId, schoolYear, gradingPeriod, section, dataType, selectedStudents = []) => {
         try {
           // Build the base query params
-          const params = { classId, gradingPeriod, dataType };
+          const params = { classId, schoolYear, gradingPeriod, dataType };
           
           // If single section, pass section._id
           if (dataType === "singleSectionPerformance" && section) {
