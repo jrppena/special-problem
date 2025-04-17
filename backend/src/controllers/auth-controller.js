@@ -21,11 +21,6 @@ const signup = async (req, res) => {
             return res.status(400).json({message: "Invalid input format"});
         }
         
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({message: "Invalid email format"});
-        }
         
         // Validate role is one of the expected values
         const allowedRoles = ['Student', 'Teacher', 'Admin'];
@@ -36,10 +31,6 @@ const signup = async (req, res) => {
         const existingUser = await User.findOne({email}).exec();
         if(existingUser){
             return res.status(400).json({message: "User already exists"});
-        }
-        
-        if(password.length < 6){
-            return res.status(400).json({message: "Password should be at least 6 characters"});
         }
 
         const salt = await bcrypt.genSalt(10);

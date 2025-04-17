@@ -1,6 +1,7 @@
 import express from "express";
 import { adminRoutes } from "../controllers/admin-controller.js";
-import { protectRoute, adminSpecificRoute } from "../middlewares/auth.middleware.js";
+import { protectRoute } from "../middlewares/auth.middleware.js";
+import { adminSpecificRoute } from "../middlewares/rbac.middleware.js";
 
 const router = express.Router();
 
