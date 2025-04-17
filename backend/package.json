@@ -11,8 +11,8 @@
     "test:protectRoute": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/protectRoute.test.js --testTimeout=30000 --forceExit --verbose",
     "test:roleBasedAccessControl": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/roleBasedAccessControl.test.js --testTimeout=30000 --forceExit --verbose",
     "test:hashedPassword": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/hashedPassword.test.js --testTimeout=30000 --forceExit --verbose",
-    "test:resourceSpecificAccess": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/resourceSpecificAccess.test.js --testTimeout=30000 --forceExit --verbose"
-
+    "test:resourceSpecificAccess": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/resourceSpecificAccess.test.js --testTimeout=30000 --forceExit --verbose",
+    "test:noSQLInjection": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/noSQLInjection.test.js --testTimeout=30000 --forceExit --verbose"
   },
   "author": "",
   "license": "ISC",
@@ -27,6 +27,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
     "faker": "^5.5.3",
     "faker-js": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
