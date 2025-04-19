@@ -12,7 +12,8 @@
     "test:roleBasedAccessControl": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/roleBasedAccessControl.test.js --testTimeout=30000 --forceExit --verbose",
     "test:hashedPassword": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/hashedPassword.test.js --testTimeout=30000 --forceExit --verbose",
     "test:resourceSpecificAccess": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/resourceSpecificAccess.test.js --testTimeout=30000 --forceExit --verbose",
-    "test:noSQLInjection": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/noSQLInjection.test.js --testTimeout=30000 --forceExit --verbose"
+    "test:noSQLInjection": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/noSQLInjection.test.js --testTimeout=30000 --forceExit --verbose",
+    "test:inputValidation": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js src/tests/inputValidation.test.js --testTimeout=30000 --forceExit --verbose"
   },
   "author": "",
   "license": "ISC",

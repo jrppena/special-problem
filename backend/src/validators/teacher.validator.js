@@ -27,7 +27,7 @@ export const teacherValidators = {
   ],
   
   updateStudentGrades: [
-    body('selectedClass').isMongoId().withMessage('Valid class ID is required'),
+    body('selectedClass._id').isMongoId().withMessage('Valid class ID is required'),
     body('editedGrades').isObject().withMessage('Edited grades must be an object'),
     body('schoolYear').optional().matches(/^\d{4}-\d{4}$/).withMessage('School year format should be YYYY-YYYY')
   ],

@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-import { protectRoute, adminSpecificRoute, teacherSpecificRoute, studentSpecificRoute } from '../middlewares/auth.middleware.js';
+import { protectRoute } from '../middlewares/auth.middleware.js';
+import { adminSpecificRoute, studentSpecificRoute, teacherSpecificRoute } from '../middlewares/rbac.middleware.js';
 import User from '../models/user.model.js';
 import connectDB from '../config/mongodb.js';
 

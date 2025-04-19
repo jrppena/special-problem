@@ -26,6 +26,15 @@ export const studentValidators = {
     query('dataType').isIn(['singleSubjectAcrossQuarters', 'subjectsAcrossQuarters', 'subjectsInOneQuarter'])
       .withMessage('Invalid data type'),
     query('selectedSubject').optional().isMongoId().withMessage('Valid subject ID is required'),
-    query('selectedQuarter').optional().isIn(['Q1', 'Q2', 'Q3', 'Q4']).withMessage('Valid quarter is required')
+    // Add a custom validator to check selectedQuarter conditional on dataType
+    query('selectedQuarter').custom((value, { req }) => {
+      if (req.query.dataType === 'subjectsInOneQuarter' && !value) {
+        throw new Error('Quarter is required when dataType is subjectsInOneQuarter');
+      }
+      if (value && !['Q1', 'Q2', 'Q3', 'Q4'].includes(value)) {
+        throw new Error('Valid quarter is required');
+      }
+      return true;
+    })
   ]
 };
