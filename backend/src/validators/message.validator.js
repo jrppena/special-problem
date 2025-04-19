@@ -9,14 +9,35 @@ export const messageValidators = {
   ],
   
   sendMessage: [
-    param('id').isMongoId().withMessage('Valid recipient ID is required'),
+    param('id')
+      .isMongoId()
+      .withMessage('Valid recipient ID is required'),
+  
+    // Require either non-empty text or non-null image
     body()
-      .custom((body) => {
-        // Either text or image is required
-        return body.text || body.image;
+      .custom(body => {
+        if (!body.text && body.image == null) {
+          throw new Error('Message must contain either text or image');
+        }
+        return true;
+      }),
+  
+    // Validate text if provided
+    body('text')
+      .optional()
+      .isString()
+      .trim(),
+  
+    // Allow image to be null, or a valid string
+    body('image')
+      .optional({ nullable: true })
+      .custom((value) => {
+        if (value === null) return true;
+        if (typeof value !== 'string') {
+          throw new Error('Invalid image format');
+        }
+        return true;
       })
-      .withMessage('Message must contain either text or image'),
-    body('text').optional().trim(),
-    body('image').optional().isString().withMessage('Invalid image format')
   ]
+  
 };
