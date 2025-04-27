@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 
 .env
+
+# AcadBridge LaTeX files
+AcadBridge/
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.out
