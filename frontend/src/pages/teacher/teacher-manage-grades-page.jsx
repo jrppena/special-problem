@@ -133,12 +133,12 @@ const TeacherManageGradesPage = () => {
     const hasInvalidGrades = Object.entries(editedGrades).some(([studentId, grades]) =>
       Object.entries(grades).some(([quarter, value]) => {
         const gradeNum = parseFloat(value);
-        return !isNaN(gradeNum) && (gradeNum > 100 || gradeNum < 0);
-      })
-    );
+        return !isNaN(gradeNum) && (gradeNum > 100 || gradeNum < 75);
+      }
+    ));
 
     if (hasInvalidGrades) {
-      toast.error("Grades must be between 0 and 100.");
+      toast.error("Grades must be between 75 and 100.");
       return;
     }
 
@@ -150,7 +150,7 @@ const TeacherManageGradesPage = () => {
     );
 
     if (hasBlankExistingGrades) {
-      toast.error("Existing grades cannot be left blank. Please enter a valid number.");
+      toast.error("Existing grades cannot be left blank. Please enter a grade between 75 and 100.");
       return;
     }
 
@@ -365,7 +365,7 @@ const TeacherManageGradesPage = () => {
         // Process student grades
         for (let i = 2; i < rows.length; i++) {
           const row = rows[i];
-          if (!row) continue;
+          if (!row) continue
 
           const studentId = row[1];
           const grades = {
@@ -377,8 +377,8 @@ const TeacherManageGradesPage = () => {
 
           // Validate grades (must be numbers between 0-100 or "-")
           for (const quarter in grades) {
-            if (grades[quarter] !== "-" && (isNaN(grades[quarter]) || grades[quarter] < 0 || grades[quarter] > 100)) {
-              toast.error(`Invalid grade for Student ID ${studentId} in ${quarter}. Must be between 0-100.`);
+            if (grades[quarter] !== "-" && (isNaN(grades[quarter]) || grades[quarter] < 75 || grades[quarter] > 100)) {
+              toast.error(`Invalid grade for Student ID ${studentId} in ${quarter}. Must be between 75-100.`);
               return;
             }
           }
@@ -395,9 +395,10 @@ const TeacherManageGradesPage = () => {
         } catch (error) {
           toast.error("Failed to save all grades.");
           console.log("Error saving grades:", error);
+        }finally{
+          event.target.value = "";
+
         }
-        
-        toast.success("Grades successfully uploaded.");
       };
 
       reader.readAsArrayBuffer(file);
