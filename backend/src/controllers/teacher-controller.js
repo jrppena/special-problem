@@ -19,49 +19,49 @@ const getAvailableStudents = async (req, res) => {
         // Extract gradeLevel and schoolYear from query parameters
         const gradeLevel = parseInt(req.query.gradeLevel, 10);
         const schoolYear = req.query.schoolYear;
-        
+
         if (!gradeLevel || !schoolYear) {
             return res.status(400).json({ message: "gradeLevel and schoolYear query parameters are required" });
         }
-        
+
         // Validate school year
         const config = await Config.findOne();
         if (!config || !config.schoolYears.includes(schoolYear)) {
             return res.status(400).json({ message: "Invalid school year requested" });
         }
-        
+
         // Get all sections for the given school year and collect their student IDs
         const sections = await Section.find({ schoolYear }, "students");
         let usedStudentIds = [];
         sections.forEach((section) => {
             usedStudentIds = usedStudentIds.concat(section.students);
         });
-        
+
         // Find students of the given grade level that are not in any section for that school year
         const availableStudents = await Student.find({
             gradeLevel,
             _id: { $nin: usedStudentIds },
             academicStatus: "Regular",
         });
-        
+
         return res.status(200).json(availableStudents);
     } catch (error) {
         console.log("Error in getAvailableStudents: ", error);
         return res.status(500).json({ message: "Something went wrong" });
     }
 };
-  
+
 const addStudentToSection = async (req, res) => {
     const { sectionId, studentIds, schoolYear } = req.body.data;
     const userId = req.user._id;
-  
+
     try {
         // Validate school year
         const config = await Config.findOne();
         if (!config || !config.schoolYears.includes(schoolYear)) {
             return res.status(400).json({ message: "Invalid school year requested" });
         }
-        
+
         // Add students to the section in the database
         const updatedSection = await Section.findOneAndUpdate(
             {
@@ -77,15 +77,15 @@ const addStudentToSection = async (req, res) => {
             }
         ).populate('students'); // Populate the students
 
-        if(!updatedSection) {
+        if (!updatedSection) {
             return res.status(404).json({ success: false, message: 'Section not found or you are not authorized' });
         }
-        
+
         // Double-check authorization (though this should be redundant with the query above)
-        if(updatedSection.advisers.includes(userId) === false){
+        if (updatedSection.advisers.includes(userId) === false) {
             return res.status(403).json({ success: false, message: "Forbidden: You are not an adviser of this section" });
         }
-    
+
         res.json({ success: true, updatedSection });
     } catch (error) {
         console.error("Error in addStudentToSection:", error);
@@ -96,7 +96,7 @@ const addStudentToSection = async (req, res) => {
 const removeStudentFromSection = async (req, res) => {
     const { sectionId, studentId } = req.body;
     const userId = req.user._id; // Get the authenticated user's ID from the request
-    
+
     try {
         const section = await Section.findById(sectionId).populate('students');
 
@@ -110,37 +110,37 @@ const removeStudentFromSection = async (req, res) => {
             if (!config || !config.schoolYears.includes(req.body.schoolYear)) {
                 return res.status(400).json({ message: "Invalid school year requested" });
             }
-            
+
             // Verify section belongs to requested school year
             if (section.schoolYear !== req.body.schoolYear) {
                 return res.status(400).json({ message: "Section does not belong to specified school year" });
             }
         }
 
-        if(!section.advisers.includes(userId)) {
+        if (!section.advisers.includes(userId)) {
             return res.status(403).json({ success: false, message: 'Forbidden: You are not an adviser of this section' });
         }
-        
+
         const studentExistsInSection = section.students.some(student => student._id.toString() === studentId.toString());
         if (!studentExistsInSection) {
             return res.status(400).json({ success: false, message: 'Student not found in this section' });
         }
-        
+
         // Check if the student has grades in the current school year
         const grade = await Grade.find({ student: studentId, schoolYear: section.schoolYear });
         if (grade && grade.length > 0) {
             return res.status(400).json({ success: false, message: 'Cannot remove student from section. Student has grades' });
         }
-    
+
         // Remove the student from the section's students array
         section.students = section.students.filter(student => student._id.toString() !== studentId.toString());
-    
+
         // Save the updated section
         const updatedSection = await section.save();
-        
+
         // Populate the students field
         await updatedSection.populate('students');
-    
+
         return res.status(200).json({ success: true, updatedSection });
     } catch (error) {
         console.error("Error in removeStudentFromSection:", error.message);
@@ -151,7 +151,7 @@ const removeStudentFromSection = async (req, res) => {
 const getAssignedClasses = async (req, res) => {
     const userId = req.user._id;
     const schoolYear = req.query.schoolYear;
-   
+
     try {
         // Validate school year
         const config = await Config.findOne();
@@ -167,21 +167,21 @@ const getAssignedClasses = async (req, res) => {
                     model: 'Student' // Ensure correct model reference
                 }
             });
-        
+
         // Filter sections to only include those where the teacher is an adviser or the class teacher
         const filteredClasses = classes.map(classItem => {
             // Create a copy to avoid modifying the original
             const classCopy = classItem.toObject();
-            
+
             // Filter sections where teacher is an adviser or class teacher
-            classCopy.sections = classCopy.sections.filter(section => 
-                section.advisers.some(adviser => adviser.toString() === userId.toString()) || 
+            classCopy.sections = classCopy.sections.filter(section =>
+                section.advisers.some(adviser => adviser.toString() === userId.toString()) ||
                 classItem.teachers.some(teacher => teacher.toString() === userId.toString())
             );
-            
+
             return classCopy;
         });
-        
+
         res.status(200).json(filteredClasses);
     } catch (error) {
         console.error("Error in getAssignedClasses:", error);
@@ -195,21 +195,18 @@ const getClassGrades = async (req, res) => {
     const sectionId = req.query.sectionId;
     const schoolYear = req.query.schoolYear;
     const userId = req.user._id;
-
     try {
         // Validate school year
         const config = await Config.findOne();
         if (!config || !config.schoolYears.includes(schoolYear)) {
             return res.status(400).json({ message: "Invalid school year requested" });
         }
-
         // Fetch the section with populated students
         const section = await Section.findById(sectionId).populate('students', '_id');
-        
+
         if (!section) {
             return res.status(404).json({ message: "Section not found" });
         }
-
         // Verify section belongs to requested school year
         if (section.schoolYear !== schoolYear) {
             return res.status(400).json({ message: "Section does not belong to specified school year" });
@@ -312,11 +309,14 @@ const updateStudentGrades = async (req, res) => {
             if (!config || !config.schoolYears.includes(schoolYear)) {
                 return res.status(400).json({ message: "Invalid school year requested" });
             }
+            if (config.currentSchoolYear !== schoolYear && req.user.role === "Teacher") {
+                return res.status(400).json({ message: "You cannot update grades for school years other than the current school year" });
+            }
         }
 
         // Verify the class exists and user is authorized
         const classDetails = await Class.findById(selectedClass).populate('teachers');
-        
+
         if (!classDetails) {
             return res.status(404).json({ error: "Class not found." });
         }
@@ -331,21 +331,21 @@ const updateStudentGrades = async (req, res) => {
             _id: { $in: classDetails.sections }
         });
 
-        const allStudentsInSections = sections.flatMap(section => 
+        const allStudentsInSections = sections.flatMap(section =>
             section.students.map(student => student.toString())
         );
 
         const invalidStudents = studentIds.filter(id => !allStudentsInSections.includes(id));
         if (invalidStudents.length > 0) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: "Some students are not enrolled in this class",
-                invalidStudents 
+                invalidStudents
             });
         }
 
         const bulkOperations = [];
         const existingGradesMap = await getExistingGradesMap(selectedClass);
-        
+
         // Prepare bulk operations
         for (const studentId in editedGrades) {
             for (const gradingPeriod in editedGrades[studentId]) {
@@ -353,7 +353,7 @@ const updateStudentGrades = async (req, res) => {
 
                 if (gradeValue !== null) {
                     const currentGradeInDB = existingGradesMap[studentId]?.[gradingPeriod] ?? "-";
-                    
+
                     // Only update if the grade actually changed
                     if (gradeValue !== currentGradeInDB) {
                         bulkOperations.push({
@@ -391,9 +391,9 @@ const updateStudentGrades = async (req, res) => {
             updatedClassGrades[grade.student._id][grade.gradingPeriod] = grade.gradeValue;
         });
 
-        return res.status(200).json({ 
-            message: "Grades updated successfully.", 
-            updatedClassGrades 
+        return res.status(200).json({
+            message: "Grades updated successfully.",
+            updatedClassGrades
         });
 
     } catch (error) {
@@ -407,7 +407,7 @@ const getChartData = async (req, res) => {
     const schoolYear = req.query.schoolYear;
     const userId = req.user._id;
 
-    
+
 
     try {
         // Validate school year
@@ -438,12 +438,12 @@ const getChartData = async (req, res) => {
             if (!sectionId) {
                 return res.status(400).json({ message: "sectionId is required for singleSectionPerformance" });
             }
-            
+
             // Verify the section is associated with this class
             if (!assignedClass.sections.some(s => s.toString() === sectionId)) {
                 return res.status(400).json({ message: "Section is not associated with this class" });
             }
-            
+
             // Fetch the section and its students
             const section = await Section.findById(sectionId).populate("students");
             if (!section) {
@@ -459,20 +459,20 @@ const getChartData = async (req, res) => {
             let filteredStudents = section.students;
             if (studentIds && Array.isArray(JSON.parse(studentIds)) && JSON.parse(studentIds).length > 0) {
                 const studentIdList = JSON.parse(studentIds);
-                
+
                 // Verify all requested students are in this section
-                const invalidStudents = studentIdList.filter(id => 
+                const invalidStudents = studentIdList.filter(id =>
                     !section.students.some(student => student._id.toString() === id)
                 );
-                
+
                 if (invalidStudents.length > 0) {
-                    return res.status(400).json({ 
+                    return res.status(400).json({
                         message: "Some requested students are not in this section",
-                        invalidStudents 
+                        invalidStudents
                     });
                 }
-                
-                filteredStudents = section.students.filter(student => 
+
+                filteredStudents = section.students.filter(student =>
                     studentIdList.includes(student._id.toString())
                 );
             }
@@ -488,7 +488,7 @@ const getChartData = async (req, res) => {
                 class: classId,
                 student: { $in: filteredStudents.map((s) => s._id) }
             };
-            
+
             if (gradingPeriod === "all") {
                 queryCriteria.gradingPeriod = { $in: ["Q1", "Q2", "Q3", "Q4"] };
             } else {
@@ -543,7 +543,7 @@ const getChartData = async (req, res) => {
                 path: "sections",
                 populate: { path: "students" }
             });
-            
+
             if (!classData) {
                 return res.status(404).json({ message: "Class not found" });
             }
@@ -553,11 +553,11 @@ const getChartData = async (req, res) => {
             classData.sections.forEach((section) => {
                 // Verify each section belongs to the requested school year
                 if (section.schoolYear !== schoolYear) {
-                    return res.status(400).json({ 
-                        message: "One or more sections do not belong to the specified school year" 
+                    return res.status(400).json({
+                        message: "One or more sections do not belong to the specified school year"
                     });
                 }
-                
+
                 section.students.forEach((student) => {
                     allStudentIds.push(student._id);
                 });
@@ -568,7 +568,7 @@ const getChartData = async (req, res) => {
                 class: classId,
                 student: { $in: allStudentIds }
             };
-            
+
             if (gradingPeriod === "all") {
                 queryCriteria.gradingPeriod = { $in: ["Q1", "Q2", "Q3", "Q4"] };
             } else {
@@ -597,7 +597,7 @@ const getChartData = async (req, res) => {
                 const sectionName = `${section.gradeLevel}-${section.name}`;
                 const sectionAverages = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
                 const counts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }; // Track count for each quarter separately
-                
+
                 section.students.forEach((student) => {
                     const studentGrades = gradeLookup[student._id] || {};
                     ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
@@ -608,10 +608,10 @@ const getChartData = async (req, res) => {
                         }
                     });
                 });
-                
+
                 // Calculate average per quarter (if there were any scores)
                 ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
-                    sectionAverages[q] = counts[q] > 0 ? 
+                    sectionAverages[q] = counts[q] > 0 ?
                         parseFloat((sectionAverages[q] / counts[q]).toFixed(1)) : 0;
                 });
 
@@ -642,7 +642,7 @@ const getSpecificStudentGrades = async (req, res) => {
     const sectionId = req.query.sectionId;
     const schoolYear = req.query.schoolYear;
     const userId = req.user._id;
-    
+
     try {
         // Validate school year
         const config = await Config.findOne();
@@ -652,7 +652,7 @@ const getSpecificStudentGrades = async (req, res) => {
 
         const section = await Section.findById(sectionId).populate('students', '_id');
 
-        if(!section){
+        if (!section) {
             return res.status(404).json({ message: "Section not found" });
         }
 
@@ -661,7 +661,7 @@ const getSpecificStudentGrades = async (req, res) => {
             return res.status(400).json({ message: "Section does not belong to specified school year" });
         }
 
-        if(!section.advisers.includes(userId)){
+        if (!section.advisers.includes(userId)) {
             return res.status(403).json({ message: "Forbidden: You are not an adviser of this section" });
         }
 
@@ -669,14 +669,14 @@ const getSpecificStudentGrades = async (req, res) => {
         if (!section.students.some(student => student._id.toString() === studentId)) {
             return res.status(403).json({ message: "Student is not enrolled in this section" });
         }
-        
+
         // Fetch classes for the given sectionId and schoolYear
         const classes = await Class.find({
             sections: { $in: [sectionId] },
             schoolYear: schoolYear
         });
 
-        if(!classes || classes.length === 0){
+        if (!classes || classes.length === 0) {
             return res.status(404).json({ message: "No classes found for the given section and school year" });
         }
 
@@ -698,7 +698,7 @@ const getSpecificStudentGrades = async (req, res) => {
                 grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" }, // Set default grades as "-"
                 average: "-" // Default average
             };
-            
+
             let totalGrades = 0;
             let validGradesCount = 0;
 
@@ -706,13 +706,13 @@ const getSpecificStudentGrades = async (req, res) => {
             grades.forEach(grade => {
                 if (gradeMapData.grades.hasOwnProperty(grade.gradingPeriod)) {
                     const gradeValue = grade.gradeValue;
-            
+
                     // Check if the gradeValue is a valid number
                     if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
                         gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString(); // Convert grade to string
                         totalGrades += gradeValue; // Add to total grades
                         validGradesCount++; // Increment valid grades count
-                        
+
                         // Add the grade to the respective quarter for overall average calculation
                         quarterGrades[grade.gradingPeriod].push(gradeValue);
                     }
@@ -750,7 +750,7 @@ const getSpecificStudentGrades = async (req, res) => {
 
         // Return both the per-subject grades and quarter averages
         res.status(200).json(studentGrades);
-  
+
     } catch (err) {
         console.error("Error in getSpecificStudentGrades:", err);
         res.status(500).json({ message: "Something went wrong" });
@@ -771,7 +771,7 @@ const getSectionGrades = async (req, res) => {
         }
 
         // Fetch the section and its students in one query, no need for separate calls
-        const section = await Section.findOne({_id: sectionId, schoolYear: schoolYear})
+        const section = await Section.findOne({ _id: sectionId, schoolYear: schoolYear })
             .populate({
                 path: 'students',
                 select: '_id firstName lastName', // Select only the fields needed
@@ -785,7 +785,7 @@ const getSectionGrades = async (req, res) => {
             });
         }
 
-        if(!section.advisers.includes(userId)) {
+        if (!section.advisers.includes(userId)) {
             return res.status(403).json({ message: "Forbidden: You are not an adviser of this section" });
         }
 

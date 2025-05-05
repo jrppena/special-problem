@@ -1,12 +1,13 @@
-import {create} from 'zustand';
+import { create } from 'zustand';
 import toast from "react-hot-toast";
-import {axiosInstance} from "../lib/axios";
+import { axiosInstance } from "../lib/axios";
 
 export const useConfigStore = create((get, set) => ({
     schoolYears: [],
     currentSchoolYear: null,
     isGettingSchoolYears: false,
-    
+    isGettingCurrentSchoolYear: false,
+
     fetchSchoolYears: async () => {
         set({ isGettingSchoolYears: true });
         try {
@@ -21,34 +22,34 @@ export const useConfigStore = create((get, set) => ({
             set({ isGettingSchoolYears: false });
         }
     },
-   
+
     fetchCurrentSchoolYear: async () => {
-        set({ isGettingSchoolYears: true });
+        set({ isGettingCurrentSchoolYear: true });
         try {
             const response = await axiosInstance.get("/config/get/current-school-year");
-            console.log("Current School Year: ", response.data.currentSchoolYear);
+            console.log("Current School Year: ", response.data);
             set({ currentSchoolYear: response.data.currentSchoolYear });
             return response.data.currentSchoolYear;
         } catch (error) {
             console.error("Error fetching current school year:", error);
             toast.error("Failed to fetch current school year.");
         } finally {
-            set({ isGettingSchoolYears: false });
+            set({ isGettingCurrentSchoolYear: false });
         }
     },
-    
+
     updateCurrentSchoolYear: async (currentSchoolYear) => {
         set({ isGettingSchoolYears: true });
         try {
             const response = await axiosInstance.put("/config/update/current-school-year", { currentSchoolYear });
             console.log("Update School Year Response: ", response.data);
-            
+
             // Check if the update was successful
             if (response.data.success) {
                 set({ currentSchoolYear: response.data.currentSchoolYear });
                 toast.success("School year updated successfully!");
                 return response.data.currentSchoolYear;
-            } 
+            }
             // Handle missing grades case
             else if (response.data.sections && response.data.sections.length > 0) {
                 toast.error("Cannot update school year - missing grades detected");
