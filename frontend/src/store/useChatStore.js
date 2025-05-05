@@ -1,74 +1,95 @@
-import {create} from 'zustand';
+import { create } from 'zustand';
 import toast from "react-hot-toast";
-import {axiosInstance} from "../lib/axios";
+import { axiosInstance } from "../lib/axios";
 import { data } from 'react-router-dom';
 import { useAuthStore } from './useAuthStore';
 
-export const useChatStore = create((set,get) => ({
+export const useChatStore = create((set, get) => ({
     messages: [],
-    users:[],
+    users: [],
     selectedUser: null,
     isUsersLoading: false,
     isMessagesLoading: false,
     isSendingMessage: false,
+    hasUnreadMessages: false,
 
-    getUsers:async() =>{
-        set({isUsersLoading: true});
-        try{
+    getUsers: async () => {
+        set({ isUsersLoading: true });
+        try {
             const response = await axiosInstance.get("/messages/users");
-            set({users: response.data});
-        }catch(error){
+            set({ users: response.data });
+        } catch (error) {
             toast.error(error.response.data.message);
-        }finally{
-            set({isUsersLoading: false});
+        } finally {
+            set({ isUsersLoading: false });
         }
     },
 
-    getMessages: async(userId) =>{
-        set({isMessagesLoading: true});
-        try{
+    getMessages: async (userId) => {
+        set({ isMessagesLoading: true });
+        try {
             const response = await axiosInstance.get(`/messages/${userId}`);
-            set({messages: response.data});
-        }catch(error){
+            set({ messages: response.data });
+        } catch (error) {
             toast.error(error.response.data.message);
-        }finally{
-            set({isMessagesLoading: false});
+        } finally {
+            set({ isMessagesLoading: false });
         }
     },
 
-    sendMessage: async(messageData) =>{
-        const {selectedUser, messages} = get();
-        set({isSendingMessage: true});
-        try{
+    sendMessage: async (messageData) => {
+        const { selectedUser, messages } = get();
+        set({ isSendingMessage: true });
+        try {
             const response = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-            set({messages: [...messages, response.data]});
-        }catch(error){
+            set({ messages: [...messages, response.data] });
+        } catch (error) {
             toast.error(error.response.data.message);
-        }finally{
-            set({isSendingMessage: false});
+        } finally {
+            set({ isSendingMessage: false });
         }
     },
 
-    subscribeToMessages:()=>{
+    subscribeToMessages: () => {
         const { selectedUser } = get();
 
-        if(!selectedUser) return;
+        if (!selectedUser) return;
 
         const socket = useAuthStore.getState().socket;
-        
-        socket.on("newMessage", (newMessage)=>{
+
+        socket.on("newMessage", (newMessage) => {
             const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-            if(!isMessageSentFromSelectedUser) return;
-            set({messages: [...get().messages, newMessage]});
+            if (!isMessageSentFromSelectedUser) return;
+            set({ messages: [...get().messages, newMessage] });
         })
     },
 
-    unsubscribeFromMessages:()=>{
+    unsubscribeFromMessages: () => {
         const socket = useAuthStore.getState().socket;
         socket.off("newMessage");
     },
 
-    setSelectedUser: (selectedUser) => set({selectedUser}),
+    setSelectedUser: (selectedUser) => set({ selectedUser }),
 
+    resetUnreadMessages: () => set({ hasUnreadMessages: false }),
 
+    subscribeToAllMessages: () => {
+        const socket = useAuthStore.getState().socket;
+        if (!socket) return;
+
+        socket.on("newMessage", (newMessage) => {
+            const myId = useAuthStore.getState().authUser?._id;
+            // Only mark as unread if I'm the receiver and not the sender
+            if (newMessage.receiverId === myId && newMessage.senderId !== myId) {
+                set({ hasUnreadMessages: true });
+            }
+        });
+    },
+
+    unsubscribeFromAllMessages: () => {
+        const socket = useAuthStore.getState().socket;
+        if (socket) {
+            socket.off("newMessage");
+        }
+    }
 }))
