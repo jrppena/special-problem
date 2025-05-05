@@ -477,6 +477,15 @@ const getChartData = async (req, res) => {
                 );
             }
 
+            // Sort students alphabetically by lastName, then firstName
+            filteredStudents.sort((a, b) => {
+                if (a.lastName < b.lastName) return -1;
+                if (a.lastName > b.lastName) return 1;
+                if (a.firstName < b.firstName) return -1;
+                if (a.firstName > b.firstName) return 1;
+                return 0;
+            });
+
             // Initialize gradeMap for each student (default grade is 0)
             const gradeMap = {};
             filteredStudents.forEach((student) => {
@@ -598,7 +607,16 @@ const getChartData = async (req, res) => {
                 const sectionAverages = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
                 const counts = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }; // Track count for each quarter separately
 
-                section.students.forEach((student) => {
+                // Sort students alphabetically before processing
+                const sortedSectionStudents = [...section.students].sort((a, b) => {
+                    if (a.lastName < b.lastName) return -1;
+                    if (a.lastName > b.lastName) return 1;
+                    if (a.firstName < b.firstName) return -1;
+                    if (a.firstName > b.firstName) return 1;
+                    return 0;
+                });
+
+                sortedSectionStudents.forEach((student) => {
                     const studentGrades = gradeLookup[student._id] || {};
                     ["Q1", "Q2", "Q3", "Q4"].forEach((q) => {
                         const score = studentGrades[q] || 0;
@@ -627,6 +645,10 @@ const getChartData = async (req, res) => {
                     };
                 }
             });
+
+            // Sort sections alphabetically by name
+            processedData.sort((a, b) => a.name.localeCompare(b.name));
+
             return res.status(200).json(processedData);
         } else {
             return res.status(400).json({ message: "Invalid dataType" });
