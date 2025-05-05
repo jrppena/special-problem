@@ -761,7 +761,6 @@ const getSectionGrades = async (req, res) => {
     const { sectionId, schoolYear } = req.query;
     const userId = req.user._id;
 
-
     try {
         // Validate school year
         const config = await Config.findOne();
@@ -808,8 +807,21 @@ const getSectionGrades = async (req, res) => {
             class: { $in: classes.map((classItem) => classItem._id) },
         }).exec();
 
+        // Sort the students alphabetically by lastName then firstName
+        const sortedStudents = [...section.students].sort((a, b) => {
+            // First sort by last name
+            const lastNameComparison = a.lastName.localeCompare(b.lastName);
+
+            // If last names are the same, sort by first name
+            if (lastNameComparison === 0) {
+                return a.firstName.localeCompare(b.firstName);
+            }
+
+            return lastNameComparison;
+        });
+
         // Initialize an object to hold student grade data
-        const studentsGradesData = section.students.map((student) => {
+        const studentsGradesData = sortedStudents.map((student) => {
             const dummyGradesData = [];
             const quarterGrades = { Q1: [], Q2: [], Q3: [], Q4: [] };
 
@@ -881,7 +893,6 @@ const getSectionGrades = async (req, res) => {
         res.status(500).json({ message: "Something went wrong" });
     }
 };
-
 export const teacherRoutes = {
     getTeachers,
     getAvailableStudents,
