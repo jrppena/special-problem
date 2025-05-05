@@ -11,30 +11,30 @@ import { Loader2 } from 'lucide-react';
 import { toast } from "react-hot-toast";
 
 function LoginPage() {
-    const [showPassword, setShowPassword] = useState(false);
-    
-    const [formData, setFormData] = useState({
-        email: "",
-        password: "",
-    });
+  const [showPassword, setShowPassword] = useState(false);
 
-    const {login, isLoggingIn} = useAuthStore();
-    
-    const validateForm = () => {
-        if (!formData.email) {
-           return toast.error("Email is required");
-        }
-        if(!formData.password){
-            return toast.error("Password is required"); 
-        }
-        return true;
-    };
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-    const handleSubmit = (e) =>{
-        e.preventDefault();
-        const success = validateForm();
-        if(success) login(formData);
+  const { login, isLoggingIn } = useAuthStore();
+
+  const validateForm = () => {
+    if (!formData.email) {
+      return toast.error("Email is required");
     }
+    if (!formData.password) {
+      return toast.error("Password is required");
+    }
+    return true;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const success = validateForm();
+    if (success) login(formData);
+  }
 
   return (
     <section className="bg-white">
@@ -81,11 +81,11 @@ function LoginPage() {
                     id="Email"
                     name="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="mt-1 w-full rounded-md border-2 border-gray-300 bg-white text-lg text-gray-700 py-3 px-4 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                  
+
                 {/* Password */}
                 <div className="col-span-6">
                   <label htmlFor="Password" className="block text-lg font-medium text-gray-700">

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
+import { useChatStore } from "./useChatStore";
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "/"
 
@@ -106,7 +107,7 @@ export const useAuthStore = create((set, get) => ({
         });
 
         // Initialize the global message listener to track unread messages
-        const { subscribeToAllMessages } = require('./useChatStore').useChatStore.getState();
+        const { subscribeToAllMessages } = useChatStore.getState();
         if (subscribeToAllMessages) {
             subscribeToAllMessages();
         }
