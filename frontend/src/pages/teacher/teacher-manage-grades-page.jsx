@@ -268,9 +268,69 @@ const TeacherManageGradesPage = () => {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Class Grades");
 
+      sheet.columns = [
+        { width: 5 },    // Column A - narrow for row numbers
+        { width: 20 },   // Column B
+        { width: 20 },   // Column C
+        { width: 20 },   // Column D
+        { width: 20 },   // Column E
+        { width: 20 },   // Column F
+        { width: 20 },   // Column G
+
+      ];
+
+      // Header rows
+      sheet.mergeCells('A1:G1');
+      sheet.getCell('A1').value = 'Department of Education';
+
+      sheet.mergeCells('A2:G2');
+      sheet.getCell('A2').value = 'Region V';
+
+      sheet.mergeCells('A3:G3');
+      sheet.getCell('A3').value = 'Division of Camarines Sur';
+
+      sheet.mergeCells('A4:G4');
+      sheet.getCell('A4').value = 'Goa District';
+
+      sheet.mergeCells('A5:G5');
+      sheet.getCell('A5').value = 'GOA SCIENCE HIGH SCHOOL';
+
+      sheet.mergeCells('A6:G6');
+      sheet.getCell('A6').value = selectedSection?.schoolYear;
+
+      sheet.mergeCells('A7:G7');
+      // Add empty row
+      sheet.addRow([]);
+
+      // Title row
+      sheet.mergeCells('A8:G8');
+      sheet.getCell('A8').value = `${selectedClass.subjectName} - ${selectedClass.gradeLevel} Class Grades`;
+
+      sheet.mergeCells('A9:G9');
+      sheet.getCell('A9').value = `Grade ${selectedSection?.gradeLevel} - ${selectedSection?.name}`;
+
+      sheet.addRow([]);
+
+      // Style the cells - alignment and fonts only, no borders
+      for (let i = 1; i <= 9; i++) {
+        const cell = sheet.getCell(`A${i}`);
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Special styling for the school name (bold)
+        if (i === 5) {
+          cell.font = { bold: true };
+        }
+
+        // Special styling for the title (bold and size 14)
+        if (i === 8) {
+          cell.font = { bold: true, size: 14 };
+        }
+      }
+
       // Header Row
       const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
       const headerRow = sheet.addRow(headers);
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.font = { bold: true };
 
       // Style headers
@@ -289,7 +349,8 @@ const TeacherManageGradesPage = () => {
       });
 
       // Populate with student data and grades
-      selectedSection.students.forEach((student) => {
+      const sortedStudents = sortStudents(selectedSection.students);
+      sortedStudents.forEach((student) => {
         const studentGrades = classGrades[student._id] || {};
         const row = sheet.addRow([
           student._id,
@@ -300,6 +361,7 @@ const TeacherManageGradesPage = () => {
           studentGrades.Q3 || "-",
           studentGrades.Q4 || "-",
         ]);
+        row.alignment = { horizontal: 'center', vertical: 'middle' };
 
         // Add light border to each cell
         row.eachCell((cell) => {
@@ -322,6 +384,11 @@ const TeacherManageGradesPage = () => {
           }
         });
         column.width = maxLength + 2;
+      });
+
+      const generatedRow = sheet.addRow([`Generated on: ${new Date().toLocaleDateString()}`]);
+      generatedRow.eachCell((cell) => {
+        cell.font = { italic: true };
       });
 
       // Generate and save the file
