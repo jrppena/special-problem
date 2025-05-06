@@ -19,7 +19,14 @@ export const useAuthStore = create((set, get) => ({
         try {
             const response = await axiosInstance.get("/auth/check");
             set({ authUser: response.data });
-            get().connectSocket();
+
+            if (response.data) {
+                // Check for unread messages after authentication completes
+                const { checkUnreadMessages } = useChatStore.getState();
+                await checkUnreadMessages();
+
+                get().connectSocket();
+            }
         } catch (error) {
             console.log("Error in checkAuth: ", error);
             set({ authUser: null });
@@ -50,6 +57,10 @@ export const useAuthStore = create((set, get) => ({
 
             // ✅ Wait for checkAuth() to get the latest user state before setting authUser
             await useAuthStore.getState().checkAuth();
+
+            // Check for unread messages that arrived while user was offline
+            const { checkUnreadMessages } = useChatStore.getState();
+            await checkUnreadMessages();
 
             toast.success("Logged in successfully");
 
