@@ -214,12 +214,6 @@ const TeacherSectionManagementPage = () => {
     }
   };
 
-  useEffect(() => {
-    if (adviserSectionGrades) {
-      console.log(adviserSectionGrades);
-    }
-  }, [adviserSectionGrades]);
-
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);

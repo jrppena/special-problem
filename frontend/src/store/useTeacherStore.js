@@ -159,7 +159,6 @@ export const useTeacherStore = create((set) => ({
             const response = await axiosInstance.get('teacher/get/section-grades',{
                 params:{sectionId, schoolYear}
             });
-            console.log(response.data);
             set({adviserSectionGrades: response.data});
         }catch(error){
             console.log('Error in getAdviserSectionGrades: ', error);

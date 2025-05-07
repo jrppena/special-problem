@@ -122,7 +122,6 @@ function SignupPage() {
         const success = validateForm();
 
         if(success) {
-          console.log(formData);
           signup(formData);
         }
     }

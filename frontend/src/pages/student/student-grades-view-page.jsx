@@ -141,14 +141,14 @@ const StudentGradesViewPage = () => {
     );
   };
 
-  // Determine if a class is passed (75% or higher)
+  // Determine if a class is passed (85% or higher)
   const getClassRemarks = (classGrade) => {
     if (!hasCompleteQuarterGrades(classGrade)) {
       return "Incomplete";
     }
     
     const average = parseFloat(classGrade.average);
-    return !isNaN(average) && average >= 75 ? "Passed" : "Failed";
+    return !isNaN(average) && average >= 85 ? "Passed" : "Failed";
   };
 
   // Get overall remarks
@@ -165,7 +165,7 @@ const StudentGradesViewPage = () => {
     // Check if all classes are passed
     const allPassed = filteredGradesData.every(classGrade => {
       const average = parseFloat(classGrade.average);
-      return !isNaN(average) && average >= 75;
+      return !isNaN(average) && average >= 85;
     });
     
     return allPassed ? "Passed" : "Failed";
@@ -239,7 +239,6 @@ const StudentGradesViewPage = () => {
           </div>
         ) : (
           <>
-          {console.log(classes)}
             <div className="bg-white p-6 rounded-lg shadow mt-5">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">

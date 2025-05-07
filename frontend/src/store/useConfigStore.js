@@ -12,7 +12,6 @@ export const useConfigStore = create((get, set) => ({
         set({ isGettingSchoolYears: true });
         try {
             const response = await axiosInstance.get("/config/get/school-years");
-            console.log("School Years: ", response.data);
             set({ schoolYears: response.data.schoolYears });
             return response.data.schoolYears;
         } catch (error) {
@@ -27,7 +26,6 @@ export const useConfigStore = create((get, set) => ({
         set({ isGettingCurrentSchoolYear: true });
         try {
             const response = await axiosInstance.get("/config/get/current-school-year");
-            console.log("Current School Year: ", response.data);
             set({ currentSchoolYear: response.data.currentSchoolYear });
             return response.data.currentSchoolYear;
         } catch (error) {
@@ -42,7 +40,6 @@ export const useConfigStore = create((get, set) => ({
         set({ isGettingSchoolYears: true });
         try {
             const response = await axiosInstance.put("/config/update/current-school-year", { currentSchoolYear });
-            console.log("Update School Year Response: ", response.data);
 
             // Check if the update was successful
             if (response.data.success) {

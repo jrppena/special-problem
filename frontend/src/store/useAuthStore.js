@@ -77,8 +77,6 @@ export const useAuthStore = create((set, get) => ({
         set({ isUpdatingProfile: true });
         try {
             const response = await axiosInstance.put("/auth/update", data, imageData, didChangeImage);
-            console.log("Response: ", response);
-
 
             await useAuthStore.getState().checkAuth();
             toast.success("Profile updated successfully");
