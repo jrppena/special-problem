@@ -21,8 +21,8 @@ export const useStudentStore = create((set) => ({
                     }
                 }
             );
-            set({classes: response.data});
-            return(response.data);
+            set({classes: response.data.classes});
+            return(response.data.classes);
         } catch (error) {
             toast.error("Failed to get enrolled classes");
         }
@@ -78,6 +78,7 @@ export const useStudentStore = create((set) => ({
     },
 
     clearGrades: () => set({ grades: [], isGettingGrades: false }),
+    clearClasses: () => set({ classes: [] }),
 
 
 

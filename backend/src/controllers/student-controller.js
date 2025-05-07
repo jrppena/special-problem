@@ -43,7 +43,7 @@ const getEnrolledClasses = async (req, res) => {
             return res.status(200).json({ message: "No classes found for the student for the given school year", classes: [] });
         }
 
-        return res.status(200).json(classes);
+        return res.status(200).json({classes: classes});
 
     } catch (error) {
         console.error("Error in getEnrolledClasses:", error);
@@ -55,7 +55,6 @@ const getEnrolledClassesGrades = async (req, res) => {
     let requestedClasses = req.query.classes;
     const studentId = req.user._id;
     const schoolYear = req.query.schoolYear;
-    console.log("running test")
     if (typeof requestedClasses === 'string') {
         requestedClasses = JSON.parse(requestedClasses);
       }

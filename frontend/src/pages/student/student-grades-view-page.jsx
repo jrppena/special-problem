@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import Dropdown from "../../components/drop-down";
-import HonorsList from "./honors-list"; // Import the new HonorsList component
+import HonorsList from "./honors-list";
 import toast from "react-hot-toast";
 
 import { useStudentStore } from "../../store/useStudentStore";
@@ -37,7 +37,8 @@ const StudentGradesViewPage = () => {
     getEnrolledClassesGrades, 
     grades, 
     isGettingGrades,
-    clearGrades
+    clearGrades,
+    clearClasses,
   } = useStudentStore();
   const { authUser } = useAuthStore();
 
@@ -65,12 +66,15 @@ const StudentGradesViewPage = () => {
   useEffect(() => {
     // Clear grades data when component mounts to avoid seeing stale data
     clearGrades();
+    clearClasses();
     
     return () => {
       // Also clear grades when component unmounts
       clearGrades();
+      clearClasses();
+
     };
-  }, [clearGrades]);
+  }, [clearGrades, clearClasses,selectedSchoolYear]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -167,7 +171,7 @@ const StudentGradesViewPage = () => {
     return allPassed ? "Passed" : "Failed";
   };
 
-  // Combined loading state to show loader in both scenarios
+  // Combined loading state
   const showLoading = isLoadingSchoolYears || isGettingSchoolYears || isLoading || isGettingGrades;
 
   // If loading school years, show loader
@@ -223,16 +227,19 @@ const StudentGradesViewPage = () => {
           </div>
         </div>
 
-        {classes.length === 0 && !showLoading ? (
+        {/* Content Rendering Section - Fixed Logic */}
+        {showLoading ? (
+          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
+            <Loader className="size-10 animate-spin" />
+            <p className="ml-3 text-gray-500">Loading grades...</p>
+          </div>
+        ) : classes.length === 0 ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You are not enrolled in any classes for the selected school year.
           </div>
-        ) : isLoading || isGettingGrades ? (
-          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
-            <p className="text-gray-500">Loading grades...</p>
-          </div>
         ) : (
           <>
+          {console.log(classes)}
             <div className="bg-white p-6 rounded-lg shadow mt-5">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -300,7 +307,7 @@ const StudentGradesViewPage = () => {
                     ))}
                   </tbody>
                   {/* Add footer with averages */}
-                  {selectedClass === "all" && (
+                  {selectedClass === "all" && filteredGradesData.length > 0 && (
                     <tfoot>
                       <tr className="bg-gray-50">
                         {selectedClass === "all" && (
