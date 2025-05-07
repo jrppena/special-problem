@@ -674,27 +674,40 @@ const TeacherManageGradesPage = () => {
                   isShowingAll={isShowingAll}
                   setIsShowingAll={setIsShowingAll}
                 />
-                {selectedSchoolYear == currentSchoolYearState && (
                   <div className="flex justify-start mt-4 gap-4">
-                    <button
-                      onClick={handleEditMode}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      {editMode ? "Cancel Edit" : "Edit Grades"}
-                    </button>
+                    {selectedSchoolYear == currentSchoolYearState && (
+                      <>
+                        <button
+                          onClick={handleEditMode}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          {editMode ? "Cancel Edit" : "Edit Grades"}
+                        </button>
 
-                    {/* Upload Grades Button */}
-                    <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
-                      <Upload className="w-4 h-4" />
-                      Upload Grades
-                      <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        className="hidden"
-                        onChange={handleUploadGrades}
-                      />
-                    </label>
+                        {/* Upload Grades Button */}
+                        <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-4 h-4" />
+                          Upload Grades
+                          <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                            onChange={handleUploadGrades}
+                          />
+                        </label>
+
+                        {editMode && isSaveAllEnabled && (
+                          <button
+                            onClick={handleSaveAllGrades}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                          >
+                            <Save className="w-4 h-4" />
+                            Save Changes
+                          </button>
+                        )}
+                      </>
+                    )}
 
                     {/* Download Current Grades Button */}
                     <button
@@ -704,19 +717,7 @@ const TeacherManageGradesPage = () => {
                       <FileDown className="w-4 h-4" />
                       Download Current Grades
                     </button>
-
-                    {editMode && isSaveAllEnabled && (
-                      <button
-                        onClick={handleSaveAllGrades}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                      </button>
-                    )}
                   </div>
-                )}
-
               </div>
             ) : (
               <div className="text-center text-gray-500 mt-6">No sections found for the selected class.</div>
