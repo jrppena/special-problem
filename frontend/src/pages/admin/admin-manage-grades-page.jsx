@@ -91,7 +91,6 @@ const AdminManageGradesPage = () => {
         setFilteredClasses(filtered);
       }
     } else {
-      console.log("No classes available for filtering.");
       setFilteredClasses([]);
     }
   }, [classes, selectedGradeLevel]);
@@ -234,6 +233,27 @@ const AdminManageGradesPage = () => {
     return sortedStudents;
   };
 
+  // Calculate student average and determine if they pass or fail
+  const calculateAverage = (studentId) => {
+    const grades = classGrades[studentId] || {};
+    const validGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .map(quarter => grades[quarter])
+      .filter(grade => grade && grade !== "-" && !isNaN(parseFloat(grade)));
+    
+    if (validGrades.length === 0) return { average: "-", remarks: "" };
+    
+    const sum = validGrades.reduce((acc, grade) => acc + parseFloat(grade), 0);
+    const average = (sum / validGrades.length).toFixed(2);
+    
+    // Check if all 4 quarters have grades before showing remarks
+    const hasAllQuarterGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .every(quarter => grades[quarter] && grades[quarter] !== "-" && !isNaN(parseFloat(grades[quarter])));
+    
+    const remarks = hasAllQuarterGrades ? (parseFloat(average) >= 85 ? "Pass" : "Failed") : "";
+    
+    return { average, remarks };
+  };
+
   const quarterOptions = [
     { value: "Q1", label: "Quarter 1" },
     { value: "Q2", label: "Quarter 2" },
@@ -300,6 +320,9 @@ const AdminManageGradesPage = () => {
   /**
    * Download current grades to Excel file
    */
+  /**
+   * Download current grades to Excel file
+   */
   const handleDownloadGrades = async () => {
     if (!selectedSection) {
       toast.error("Please select a section first.");
@@ -318,37 +341,38 @@ const AdminManageGradesPage = () => {
         { width: 20 },   // Column E
         { width: 20 },   // Column F
         { width: 20 },   // Column G
-
+        { width: 20 },   // Column H - Average
+        { width: 20 },   // Column I - Remarks
       ];
 
       // Header rows
-      sheet.mergeCells('A1:G1');
+      sheet.mergeCells('A1:I1');
       sheet.getCell('A1').value = 'Department of Education';
 
-      sheet.mergeCells('A2:G2');
+      sheet.mergeCells('A2:I2');
       sheet.getCell('A2').value = 'Region V';
 
-      sheet.mergeCells('A3:G3');
+      sheet.mergeCells('A3:I3');
       sheet.getCell('A3').value = 'Division of Camarines Sur';
 
-      sheet.mergeCells('A4:G4');
+      sheet.mergeCells('A4:I4');
       sheet.getCell('A4').value = 'Goa District';
 
-      sheet.mergeCells('A5:G5');
+      sheet.mergeCells('A5:I5');
       sheet.getCell('A5').value = 'GOA SCIENCE HIGH SCHOOL';
 
-      sheet.mergeCells('A6:G6');
+      sheet.mergeCells('A6:I6');
       sheet.getCell('A6').value = selectedSection?.schoolYear;
 
-      sheet.mergeCells('A7:G7');
+      sheet.mergeCells('A7:I7');
       // Add empty row
       sheet.addRow([]);
 
       // Title row
-      sheet.mergeCells('A8:G8');
+      sheet.mergeCells('A8:I8');
       sheet.getCell('A8').value = `${selectedClass.subjectName} - ${selectedClass.gradeLevel} Class Grades`;
 
-      sheet.mergeCells('A9:G9');
+      sheet.mergeCells('A9:I9');
       sheet.getCell('A9').value = `Grade ${selectedSection?.gradeLevel} - ${selectedSection?.name}`;
 
       sheet.addRow([]);
@@ -369,9 +393,8 @@ const AdminManageGradesPage = () => {
         }
       }
 
-
       // Header Row
-      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
+      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4", "Average", "Remarks"];
       const headerRow = sheet.addRow(headers);
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.font = { bold: true };
@@ -391,9 +414,21 @@ const AdminManageGradesPage = () => {
         };
       });
 
+      const parseGrade = (gradeString) => {
+        const num = parseFloat(gradeString);
+        if (isNaN(num)) {
+          return 'N/A'; // If parsing results in NaN, return 'N/A'
+        } else {
+          return parseFloat(num.toFixed(2)); // Otherwise, round to 2 decimal places and return as a number
+        }
+      };
+
       // Populate with student data and grades
-      selectedSection.students.forEach((student) => {
+      const sortedStudents = sortStudents(selectedSection.students);
+      sortedStudents.forEach((student) => {
         const studentGrades = classGrades[student._id] || {};
+        const { average, remarks } = calculateAverage(student._id);
+        
         const row = sheet.addRow([
           student._id,
           student.firstName,
@@ -402,7 +437,28 @@ const AdminManageGradesPage = () => {
           studentGrades.Q2 || "-",
           studentGrades.Q3 || "-",
           studentGrades.Q4 || "-",
+          parseGrade(average),
+          remarks
         ]);
+        
+        row.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Style the average cell based on value
+        if (average !== "-" && !isNaN(parseFloat(average))) {
+          const averageCell = row.getCell(8); // Column H - Average
+          averageCell.font = {
+            color: { argb: parseFloat(average) >= 85 ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
+        
+        // Style the remarks cell
+        if (remarks) {
+          const remarksCell = row.getCell(9); // Column I - Remarks
+          remarksCell.font = {
+            bold: true,
+            color: { argb: remarks === "Pass" ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
 
         // Add light border to each cell
         row.eachCell((cell) => {
@@ -413,10 +469,8 @@ const AdminManageGradesPage = () => {
             right: { style: 'thin' }
           };
         });
-        row.alignment = { horizontal: 'center', vertical: 'middle' };
-
       });
-      
+
       // Auto-adjust column width for better readability
       sheet.columns.forEach((column, index) => {
         let maxLength = headers[index].length;
@@ -433,7 +487,6 @@ const AdminManageGradesPage = () => {
       generatedRow.eachCell((cell) => {
         cell.font = { italic: true };
       });
-
 
       // Generate and save the file
       const buffer = await workbook.xlsx.writeBuffer();
@@ -505,7 +558,6 @@ const AdminManageGradesPage = () => {
           const response = await updateStudentGrades(selectedClass, newGrades, selectedSection);
           setEditMode(false);
           setIsSaveAllEnabled(false);
-          toast.success("Grades successfully uploaded.");
         } catch (error) {
           toast.error("Failed to save all grades.");
           console.log("Error saving grades:", error);
@@ -691,6 +743,9 @@ const AdminManageGradesPage = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q2</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q3</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q4</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+
                           </>
                         ) : (
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -724,6 +779,16 @@ const AdminManageGradesPage = () => {
                                   )}
                                 </td>
                               ))}
+                               <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${parseFloat(calculateAverage(student._id).average) >= 85 ? "text-green-600" : "text-red-600"}`}>
+                                  {calculateAverage(student._id).average}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${calculateAverage(student._id).remarks === "Pass" ? "text-green-600 font-medium" : calculateAverage(student._id).remarks === "Failed" ? "text-red-600 font-medium" : ""}`}>
+                                  {calculateAverage(student._id).remarks}
+                                </span>
+                              </td>
                             </>
                           ) : (
                             <td className="px-6 py-4 whitespace-nowrap">
