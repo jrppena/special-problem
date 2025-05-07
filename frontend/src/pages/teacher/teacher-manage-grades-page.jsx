@@ -296,37 +296,38 @@ const TeacherManageGradesPage = () => {
         { width: 20 },   // Column E
         { width: 20 },   // Column F
         { width: 20 },   // Column G
-
+        { width: 20 },   // Column H - Average
+        { width: 20 },   // Column I - Remarks
       ];
 
       // Header rows
-      sheet.mergeCells('A1:G1');
+      sheet.mergeCells('A1:I1');
       sheet.getCell('A1').value = 'Department of Education';
 
-      sheet.mergeCells('A2:G2');
+      sheet.mergeCells('A2:I2');
       sheet.getCell('A2').value = 'Region V';
 
-      sheet.mergeCells('A3:G3');
+      sheet.mergeCells('A3:I3');
       sheet.getCell('A3').value = 'Division of Camarines Sur';
 
-      sheet.mergeCells('A4:G4');
+      sheet.mergeCells('A4:I4');
       sheet.getCell('A4').value = 'Goa District';
 
-      sheet.mergeCells('A5:G5');
+      sheet.mergeCells('A5:I5');
       sheet.getCell('A5').value = 'GOA SCIENCE HIGH SCHOOL';
 
-      sheet.mergeCells('A6:G6');
+      sheet.mergeCells('A6:I6');
       sheet.getCell('A6').value = selectedSection?.schoolYear;
 
-      sheet.mergeCells('A7:G7');
+      sheet.mergeCells('A7:I7');
       // Add empty row
       sheet.addRow([]);
 
       // Title row
-      sheet.mergeCells('A8:G8');
+      sheet.mergeCells('A8:I8');
       sheet.getCell('A8').value = `${selectedClass.subjectName} - ${selectedClass.gradeLevel} Class Grades`;
 
-      sheet.mergeCells('A9:G9');
+      sheet.mergeCells('A9:I9');
       sheet.getCell('A9').value = `Grade ${selectedSection?.gradeLevel} - ${selectedSection?.name}`;
 
       sheet.addRow([]);
@@ -348,7 +349,7 @@ const TeacherManageGradesPage = () => {
       }
 
       // Header Row
-      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
+      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4", "Average", "Remarks"];
       const headerRow = sheet.addRow(headers);
       headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.font = { bold: true };
@@ -368,10 +369,21 @@ const TeacherManageGradesPage = () => {
         };
       });
 
+      const parseGrade = (gradeString) => {
+        const num = parseFloat(gradeString);
+        if (isNaN(num)) {
+          return 'N/A'; // If parsing results in NaN, return 'N/A'
+        } else {
+          return parseFloat(num.toFixed(2)); // Otherwise, round to 2 decimal places and return as a number
+        }
+      };
+
       // Populate with student data and grades
       const sortedStudents = sortStudents(selectedSection.students);
       sortedStudents.forEach((student) => {
         const studentGrades = classGrades[student._id] || {};
+        const { average, remarks } = calculateAverage(student._id);
+        
         const row = sheet.addRow([
           student._id,
           student.firstName,
@@ -380,8 +392,28 @@ const TeacherManageGradesPage = () => {
           studentGrades.Q2 || "-",
           studentGrades.Q3 || "-",
           studentGrades.Q4 || "-",
+          parseGrade(average),
+          remarks
         ]);
+        
         row.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Style the average cell based on value
+        if (average !== "-" && !isNaN(parseFloat(average))) {
+          const averageCell = row.getCell(8); // Column H - Average
+          averageCell.font = {
+            color: { argb: parseFloat(average) >= 85 ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
+        
+        // Style the remarks cell
+        if (remarks) {
+          const remarksCell = row.getCell(9); // Column I - Remarks
+          remarksCell.font = {
+            bold: true,
+            color: { argb: remarks === "Pass" ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
 
         // Add light border to each cell
         row.eachCell((cell) => {
