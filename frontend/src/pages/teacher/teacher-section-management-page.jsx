@@ -18,12 +18,13 @@ import Pagination from "../../components/pagination";
 
 const TeacherSectionManagementPage = () => {
   // Add ConfigStore for school years
-  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
+  const { fetchSchoolYears, isGettingSchoolYears,fetchCurrentSchoolYear,currentSchoolYear } = useConfigStore();
 
   // States for school years and loading
   const [schoolYears, setSchoolYears] = useState([]);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSchoolYearState, setCurrentSchoolYearState] = useState(null);
 
   const [selectedSection, setSelectedSection] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,10 +55,13 @@ const TeacherSectionManagementPage = () => {
     const getSchoolYears = async () => {
       try {
         const years = await fetchSchoolYears();
+        const currentSchoolYear = await fetchCurrentSchoolYear();
         if (years && years.length > 0) {
           setSchoolYears(years);
           setSelectedSchoolYear(years[0]); // Set first school year as default
           setIsLoading(false);
+          setCurrentSchoolYearState(currentSchoolYear);
+
         }
       } catch (error) {
         console.error("Error fetching school years:", error);
@@ -383,12 +387,17 @@ const TeacherSectionManagementPage = () => {
               )}
 
               <div className="mb-4 mt-5">
-                <button
+                
+                {currentSchoolYearState == selectedSchoolYear && (
+                  <button
                   onClick={openModal}
                   className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
                   Add Student to Class
                 </button>
+                  
+                )}
+                
                 <button
                   onClick={showSectionGrades}
                   className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ml-4"
