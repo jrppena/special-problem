@@ -255,36 +255,37 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
       { width: 20 },   // Column D
       { width: 20 },   // Column E
       { width: 20 },   // Column F
+      { width: 20 },   // Column G - Added for Complete/Incomplete & Remarks
     ];
 
     // Header rows
-    worksheet.mergeCells('A1:F1');
+    worksheet.mergeCells('A1:G1');
     worksheet.getCell('A1').value = 'Department of Education';
 
-    worksheet.mergeCells('A2:F2');
+    worksheet.mergeCells('A2:G2');
     worksheet.getCell('A2').value = 'Region V';
 
-    worksheet.mergeCells('A3:F3');
+    worksheet.mergeCells('A3:G3');
     worksheet.getCell('A3').value = 'Division of Camarines Sur';
 
-    worksheet.mergeCells('A4:F4');
+    worksheet.mergeCells('A4:G4');
     worksheet.getCell('A4').value = 'Goa District';
 
-    worksheet.mergeCells('A5:F5');
+    worksheet.mergeCells('A5:G5');
     worksheet.getCell('A5').value = 'GOA SCIENCE HIGH SCHOOL';
 
-    worksheet.mergeCells('A6:F6');
+    worksheet.mergeCells('A6:G6');
     worksheet.getCell('A6').value = section?.schoolYear;
 
-    worksheet.mergeCells('A7:F7');
+    worksheet.mergeCells('A7:G7');
     // Add empty row
     worksheet.addRow([]);
 
     // Title row
-    worksheet.mergeCells('A8:F8');
+    worksheet.mergeCells('A8:G8');
     worksheet.getCell('A8').value = 'Summary of Quarterly Average Grades';
 
-    worksheet.mergeCells('A9:F9');
+    worksheet.mergeCells('A9:G9');
     worksheet.getCell('A9').value = `Grade ${section?.gradeLevel} - ${section?.name}`;
 
     worksheet.addRow([]);
@@ -307,7 +308,7 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
 
     // Add headers at row 4
     const headerRow = worksheet.addRow([
-      'Student Name', 'Q1', 'Q2', 'Q3', 'Q4', 'Final Average'
+      'Student Name', 'Q1', 'Q2', 'Q3', 'Q4', 'Final Average', 'Status/Remarks'
     ]);
 
     headerRow.eachCell((cell) => {
@@ -325,6 +326,7 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
       { width: 10 }, // Q3
       { width: 10 }, // Q4
       { width: 15 }, // Final Average
+      { width: 25 }, // Status/Remarks
     ];
 
     const parseGrade = (gradeString) => {
@@ -336,18 +338,47 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
       }
     };
 
+    // Check if student has complete grades
+    const hasCompleteGrades = (student) => {
+      if (!student.classes || student.classes.length === 0) return false;
+      
+      return QUARTERS.every(quarter => {
+        return student.classes.every(cls => 
+          cls.grades && 
+          cls.grades[quarter] !== undefined && 
+          cls.grades[quarter] !== null && 
+          !isNaN(parseFloat(cls.grades[quarter]))
+        );
+      });
+    };
+
+    // Determine remarks based on final average
+    const getRemarks = (finalAverage, isComplete) => {
+      if (!isComplete) return 'Incomplete Grades';
+      
+      if (finalAverage === 'N/A') return 'Incomplete Grades';
+      
+      const numAverage = parseFloat(finalAverage);
+      if (isNaN(numAverage)) return 'Incomplete Grades';
+      
+      return numAverage >= 85 ? 'PASSED' : 'FAILED';
+    };
 
     let counter = 1;
     // Add student data
     grades.forEach(student => {
       const finalAverage = parseGrade(calculateFinalAverage(student.quarterAverages));
+      const isComplete = hasCompleteGrades(student);
+      const remarks = getRemarks(finalAverage, isComplete);
+      
       const dataRow = worksheet.addRow([
         `${counter}. ${student.studentName}`,
         parseGrade(student.quarterAverages.Q1),
         parseGrade(student.quarterAverages.Q2),
         parseGrade(student.quarterAverages.Q3),
         parseGrade(student.quarterAverages.Q4),
-        finalAverage // Assuming finalAverage is already a number or 'N/A' if appropriate
+        finalAverage,
+        remarks
       ]);
       counter++;
 
@@ -369,6 +400,9 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
 
       // Apply conditional formatting to final average
       applyGradeColorFormatting(dataRow.getCell(6), finalAverage);
+      
+      // Apply conditional formatting to status/remarks cell
+      applyRemarksFormatting(dataRow.getCell(7), remarks);
 
       // Add light borders to data cells
       applyDataRowStyles(dataRow);
@@ -377,6 +411,32 @@ const SectionGradesModal = ({ isOpen, onClose, section, grades }) => {
     generatedRow.eachCell((cell) => {
       cell.font = { italic: true };
     });
+  };
+
+  // Add this new helper function for remarks formatting
+  const applyRemarksFormatting = (cell, remarks) => {
+    if (remarks === 'PASSED') {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD4EDDA' } // Light green
+      };
+      cell.font = { bold: true, color: { argb: 'FF28A745' } };
+    } else if (remarks === 'FAILED') {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF8D7DA' } // Light red
+      };
+      cell.font = { bold: true, color: { argb: 'FFDC3545' } };
+    } else if (remarks === 'Incomplete Grades') {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFF3CD' } // Light yellow
+      };
+      cell.font = { color: { argb: 'FFD6B327' } };
+    }
   };
 
   // Create honors worksheet
