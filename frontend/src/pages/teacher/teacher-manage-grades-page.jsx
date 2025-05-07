@@ -191,6 +191,27 @@ const TeacherManageGradesPage = () => {
     return sortedStudents;
   };
 
+  // Calculate student average and determine if they pass or fail
+  const calculateAverage = (studentId) => {
+    const grades = classGrades[studentId] || {};
+    const validGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .map(quarter => grades[quarter])
+      .filter(grade => grade && grade !== "-" && !isNaN(parseFloat(grade)));
+    
+    if (validGrades.length === 0) return { average: "-", remarks: "" };
+    
+    const sum = validGrades.reduce((acc, grade) => acc + parseFloat(grade), 0);
+    const average = (sum / validGrades.length).toFixed(2);
+    
+    // Check if all 4 quarters have grades before showing remarks
+    const hasAllQuarterGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .every(quarter => grades[quarter] && grades[quarter] !== "-" && !isNaN(parseFloat(grades[quarter])));
+    
+    const remarks = hasAllQuarterGrades ? (parseFloat(average) >= 85 ? "Pass" : "Failed") : "";
+    
+    return { average, remarks };
+  };
+
   const quarterOptions = [
     { value: "Q1", label: "Quarter 1" },
     { value: "Q2", label: "Quarter 2" },
@@ -609,6 +630,8 @@ const TeacherManageGradesPage = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q2</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q3</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q4</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
                           </>
                         ) : (
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -642,6 +665,16 @@ const TeacherManageGradesPage = () => {
                                   )}
                                 </td>
                               ))}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${parseFloat(calculateAverage(student._id).average) >= 85 ? "text-green-600" : "text-red-600"}`}>
+                                  {calculateAverage(student._id).average}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${calculateAverage(student._id).remarks === "Pass" ? "text-green-600 font-medium" : calculateAverage(student._id).remarks === "Failed" ? "text-red-600 font-medium" : ""}`}>
+                                  {calculateAverage(student._id).remarks}
+                                </span>
+                              </td>
                             </>
                           ) : (
                             <td className="px-6 py-4 whitespace-nowrap">
