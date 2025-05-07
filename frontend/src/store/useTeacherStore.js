@@ -102,11 +102,12 @@ export const useTeacherStore = create((set) => ({
      
         try {
             const response = await axiosInstance.post('/teacher/update/student-grades', {selectedClass,editedGrades,section });
-            if(response.data.message){
+            if(response.data.success === false){
                 toast.error(response.data.message);
                 return;
+            }else if(response.data.success === true){
+                toast.success('Successfully updated student grades');
             }
-            toast.success('Student grades updated');
             set({classGrades: response.data.updatedClassGrades});
         } catch (error) {
             console.error('Error in updateStudentGrades: ', error);

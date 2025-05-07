@@ -307,10 +307,10 @@ const updateStudentGrades = async (req, res) => {
         if (schoolYear) {
             const config = await Config.findOne();
             if (!config || !config.schoolYears.includes(schoolYear)) {
-                return res.status(400).json({ message: "Invalid school year requested" });
+                return res.status(400).json({success:false, message: "Invalid school year requested" });
             }
             if (config.currentSchoolYear !== schoolYear && req.user.role === "Teacher") {
-                return res.status(400).json({ message: "You cannot update grades for school years other than the current school year" });
+                return res.status(400).json({ success:false, message: "You cannot update grades for school years other than the current school year" });
             }
         }
 
@@ -318,11 +318,11 @@ const updateStudentGrades = async (req, res) => {
         const classDetails = await Class.findById(selectedClass).populate('teachers');
 
         if (!classDetails) {
-            return res.status(404).json({ error: "Class not found." });
+            return res.status(404).json({ success:false, error: "Class not found." });
         }
 
         if (!classDetails.teachers.some(teacher => teacher._id.equals(userId)) && req.user.role === "Teacher") {
-            return res.status(403).json({ message: "Forbidden: You are not authorized to update grades for this class" });
+            return res.status(403).json({success:false, message: "Forbidden: You are not authorized to update grades for this class" });
         }
 
         // Verify all students exist in a section of this class
@@ -372,7 +372,7 @@ const updateStudentGrades = async (req, res) => {
         if (bulkOperations.length > 0) {
             await Grade.bulkWrite(bulkOperations);
         } else {
-            return res.status(200).json({ message: "No changes detected. Grades remain the same." });
+            return res.status(200).json({success:false, message: "No changes detected. Grades remain the same." });
         }
 
         // Fetch updated grades in a single query
@@ -392,6 +392,7 @@ const updateStudentGrades = async (req, res) => {
         });
 
         return res.status(200).json({
+            success:true,
             message: "Grades updated successfully.",
             updatedClassGrades
         });

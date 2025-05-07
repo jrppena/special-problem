@@ -161,10 +161,9 @@ const TeacherManageGradesPage = () => {
 
     try {
       const response = await updateStudentGrades(selectedClass, editedGrades, selectedSection);
-      console.log(response);
       setEditMode(false);
       setIsSaveAllEnabled(false);
-      toast.success("Grades updated successfully.");
+ 
     } catch (error) {
       toast.error("Failed to save all grades.");
       console.log("Error saving grades:", error);
