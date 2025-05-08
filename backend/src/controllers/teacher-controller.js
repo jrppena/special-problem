@@ -41,7 +41,7 @@ const getAvailableStudents = async (req, res) => {
         const availableStudents = await Student.find({
             gradeLevel,
             _id: { $nin: usedStudentIds },
-            academicStatus: { $ne: "Graduated" }
+            academicStatus: { $ne: "Completed" }
         });
 
         return res.status(200).json(availableStudents);

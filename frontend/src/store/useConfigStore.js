@@ -40,12 +40,12 @@ export const useConfigStore = create((get, set) => ({
         set({ isGettingSchoolYears: true });
         try {
             const response = await axiosInstance.put("/config/update/current-school-year", { currentSchoolYear });
-
+            console.log(response)
             // Check if the update was successful
             if (response.data.success) {
                 set({ currentSchoolYear: response.data.currentSchoolYear });
                 toast.success("School year updated successfully!");
-                return response.data.currentSchoolYear;
+                return response.data
             }
             // Handle missing grades case
             else if (response.data.sections && response.data.sections.length > 0) {

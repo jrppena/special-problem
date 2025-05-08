@@ -140,6 +140,7 @@ const AdminManageConfigurationPage = () => {
 };
 
 // New modal component to display promotion results
+{/* Promotion Results Modal */}
 const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
     if (!isOpen) return null;
 
@@ -200,7 +201,7 @@ const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
                             <table className="min-w-full border-collapse border border-gray-300">
                                 <thead>
                                     <tr className="bg-gray-100">
-                                        <th className="border border-gray-300 px-4 py-2 text-left">Student ID</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left">Student Name</th>
                                         <th className="border border-gray-300 px-4 py-2 text-left">Grade Average</th>
                                         <th className="border border-gray-300 px-4 py-2 text-left">Grade Level</th>
                                         <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
@@ -209,7 +210,7 @@ const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
                                 <tbody>
                                     {promotionSummary.studentsRetained.map((student, index) => (
                                         <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                            <td className="border border-gray-300 px-4 py-2">{student.studentId}</td>
+                                            <td className="border border-gray-300 px-4 py-2">{student.studentName || `Student ${student.studentId}`}</td>
                                             <td className="border border-gray-300 px-4 py-2">{student.average.toFixed(2)}</td>
                                             <td className="border border-gray-300 px-4 py-2">{student.currentGrade}</td>
                                             <td className="border border-gray-300 px-4 py-2">
