@@ -41,10 +41,8 @@ const getCurrentSchoolYear = async (req, res) => {
 }
 
 const updateCurrentSchoolYear = async (req, res) => {
-
   try {
     // Get the current school year
-    
     const config = await Config.findOne().select("currentSchoolYear");
 
     if (!config || !config.currentSchoolYear) {
@@ -190,32 +188,106 @@ const updateCurrentSchoolYear = async (req, res) => {
       });
     }
     
-    // // If no missing grades, proceed with updating the school year and promoting students
+    // Calculate student grade averages
+    // Group grades by student to calculate their averages
+    const studentGrades = new Map();
     
-    // // 1. Promote all students except grade 12
-    const studentsToUpdate = await Student.find({ gradeLevel: { $lt: 12 }});
-
+    // Process all grades to compute averages per student
+    allGrades.forEach(grade => {
+      const studentId = grade.student.toString();
+      
+      if (!studentGrades.has(studentId)) {
+        studentGrades.set(studentId, {
+          totalScore: 0,
+          gradeCount: 0
+        });
+      }
+      
+      const studentData = studentGrades.get(studentId);
+      studentData.totalScore += grade.score;
+      studentData.gradeCount += 1;
+    });
     
-    // Use bulkWrite for more efficient database operations
-    const bulkOps = studentsToUpdate.map(student => ({
+    // Calculate averages
+    const studentAverages = new Map();
+    studentGrades.forEach((data, studentId) => {
+      const average = data.gradeCount > 0 ? data.totalScore / data.gradeCount : 0;
+      studentAverages.set(studentId, average);
+    });
+    
+    // Get all students below grade 12 for potential promotion
+    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 12 }});
+    
+    // Filter students based on their grade average
+    const promotedStudents = [];
+    const failedStudents = [];
+    const failedStudentIds = [];
+    
+    studentsToEvaluate.forEach(student => {
+      const studentId = student._id.toString();
+      const average = studentAverages.get(studentId) || 0;
+      
+      if (average > 85) {
+        promotedStudents.push(student._id);
+      } else {
+        failedStudentIds.push(student._id);
+        failedStudents.push({
+          studentId: student._id,
+          average: average,
+          currentGrade: student.gradeLevel,
+          status: "Retained"
+        });
+      }
+    });
+    
+    // Update academic status to "Retained" for all students who failed
+    if (failedStudentIds.length > 0) {
+      await Student.updateMany(
+        { _id: { $in: failedStudentIds } },
+        { $set: { academicStatus: "Retained" } }
+      );
+    }
+    
+    // Use bulkWrite for more efficient database operations - only promote students with avg > 85
+    const bulkOps = promotedStudents.map(studentId => ({
       updateOne: {
-        filter: { _id: student._id },
+        filter: { _id: studentId },
         update: { $inc: { gradeLevel: 1 } }
       }
     }));
     
     const bulkResult = await Student.bulkWrite(bulkOps);
     
-
-    const graduatedStudents = await Student.find({ gradeLevel: 12 });
+    // Handle graduation for 12th grade students - only graduate those with avg > 85
+    const grade12Students = await Student.find({ gradeLevel: 12 });
     
-    await Promise.all(graduatedStudents.map(async (student) => {
-      student.academicStatus = "Graduated";
-      await student.save();
+    // Process each grade 12 student
+    const graduatedCount = await Promise.all(grade12Students.map(async (student) => {
+      const studentId = student._id.toString();
+      const average = studentAverages.get(studentId) || 0;
+      
+      if (average > 85) {
+        // Student meets graduation requirements
+        student.academicStatus = "Graduated";
+        await student.save();
+        return true;
+      } else {
+        // Student doesn't meet grade requirements for graduation
+        student.academicStatus = "Retained";
+        await student.save();
+        
+        // Add to failed students list for reporting
+        failedStudents.push({
+          studentId: student._id,
+          average: average,
+          currentGrade: student.gradeLevel,
+          status: "Senior Not Graduated"
+        });
+        return false;
       }
-    ));
+    })).then(results => results.filter(Boolean).length);
 
-    // 2. Update application config with new school year
+    // Update application config with new school year
     const configUpdate = await Config.findOneAndUpdate(
       {}, 
       {
@@ -225,17 +297,18 @@ const updateCurrentSchoolYear = async (req, res) => {
       { upsert: true, new: true }
     );
     
-    
-    // 3. Calculate statistics for the response
+    // Calculate statistics for the response
     return res.status(200).json({
       success: true,
-      message: "School year updated successfully and eligible students promoted",
+      message: "School year updated successfully and eligible students promoted/graduated",
       previousSchoolYear: currentSchoolYear,
       currentSchoolYear: newSchoolYear,
       promotionSummary: {
-        totalStudents: studentsToUpdate.length,
+        totalStudents: studentsToEvaluate.length + grade12Students.length,
         promotedStudents: bulkResult.modifiedCount,
-        failedPromotions: studentsToUpdate.length - bulkResult.modifiedCount
+        graduatedStudents: graduatedCount,
+        failedPromotions: failedStudents.length,
+        studentsRetained: failedStudents
       }
     });
     
