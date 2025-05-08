@@ -12,7 +12,7 @@ export const sectionValidators = {
   
   createSection: [
     body('sectionName').trim().isLength({ min: 2 }).withMessage('Section name is required'),
-    body('gradeLevel').isInt({ min: 7, max: 12 }).withMessage('Valid grade level (7-12) is required'),
+    body('gradeLevel').isInt({ min: 7, max: 10 }).withMessage('Valid grade level (7-10) is required'),
     body('adviserIds').isArray().withMessage('Adviser IDs must be an array'),
     body('adviserIds.*').isMongoId().withMessage('Valid adviser IDs required'),
     body('schoolYear').matches(/^\d{4}-\d{4}$/).withMessage('School year format should be YYYY-YYYY')
@@ -25,16 +25,16 @@ export const sectionValidators = {
       if (typeof value === 'string') {
         // If it's a string like "Grade 7", extract the number
         const match = value.match(/\d+/);
-        if (match && parseInt(match[0]) >= 7 && parseInt(match[0]) <= 12) {
+        if (match && parseInt(match[0]) >= 7 && parseInt(match[0]) <= 10) {
           return true;
         }
         return false;
       } else if (typeof value === 'number') {
         // If it's a number, check the range
-        return value >= 7 && value <= 12;
+        return value >= 7 && value <= 10;
       }
       return false;
-    }).withMessage('Valid grade level (7-12) is required'),
+    }).withMessage('Valid grade level (7-10) is required'),
     body('advisers').isArray().withMessage('Advisers must be an array'),
     body('advisers.*').isMongoId().withMessage('Valid adviser IDs required')
   ],

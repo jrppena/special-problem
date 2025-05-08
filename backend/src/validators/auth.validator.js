@@ -10,8 +10,8 @@ export const authValidators = {
     body('role').isIn(['Student', 'Teacher', 'Admin']).withMessage('Valid role is required'),
     body('gradeLevel')
       .if(body('role').equals('Student'))
-      .isInt({ min: 7, max: 12 })
-      .withMessage('Valid grade level (7-12) is required for students')
+      .isInt({ min: 7, max: 10 })
+      .withMessage('Valid grade level (7-10) is required for students')
   ],
   
   login: [

@@ -145,14 +145,6 @@ export const gradeLevels = [
         "name": "Grade 10",
         "value": 10
     },
-    {
-        "name": "Grade 11",
-        "value": 11
-    },
-    {
-        "name": "Grade 12",
-        "value": 12
-    }
 ]
 
 export const roleFunctions = {

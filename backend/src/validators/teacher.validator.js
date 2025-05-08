@@ -5,7 +5,7 @@ export const teacherValidators = {
   getTeachers: [],
   
   getAvailableStudents: [
-    query('gradeLevel').isInt({ min: 7, max: 12 }).withMessage('Valid grade level (7-12) is required'),
+    query('gradeLevel').isInt({ min: 7, max: 10 }).withMessage('Valid grade level (7-10) is required'),
     query('schoolYear').matches(/^\d{4}-\d{4}$/).withMessage('School year format should be YYYY-YYYY')
   ],
   
