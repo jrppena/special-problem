@@ -55,7 +55,7 @@ export const useTeacherStore = create((set) => ({
 
     removeStudentFromSection: async (data) => {
         try {
-            const response = await axiosInstance.delete('e', {data});
+            const response = await axiosInstance.delete('/teacher/remove/student-from-section', {data});
 
             if(response.message){
                 toast.error(response.message);
