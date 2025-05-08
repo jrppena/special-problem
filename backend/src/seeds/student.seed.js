@@ -96,6 +96,12 @@ const seedDatabase = async () => {
     // await Student.insertMany(seedUsers.students);
 
     const studentsToDelete = await Student.find({ gradeLevel: { $gt: 10 } });
+    if (studentsToDelete.length > 0) {
+      await Student.deleteMany({ gradeLevel: { $gt: 10 } });
+      console.log("Deleted students with grade level greater than 10.");
+    } else {
+      console.log("No students found with grade level greater than 10.");
+    }
     console.log("Database seeded successfully with students.");
     
   } catch (error) {
