@@ -60,7 +60,11 @@ export const useConfigStore = create((get, set) => ({
             }
         } catch (error) {
             console.error("Error updating school year:", error);
-            toast.error("Failed to update school year.");
+            if(error.response && error.response.data) {
+                toast.error(error.response.data.message || "Failed to update school year.");
+            }else{
+                toast.error("Failed to update school year.");
+            }
             return null;
         } finally {
             set({ isGettingSchoolYears: false });

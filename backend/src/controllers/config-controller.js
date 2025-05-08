@@ -2,7 +2,7 @@ import Config from "../models/config.model.js";
 import Class from "../models/class.model.js";
 import Student from "../models/student.model.js";
 import Grade from "../models/grade.model.js";
-
+import Section from "../models/section.model.js";
 
 const getAllSchoolYears = async (req, res) => {
     try {
@@ -58,7 +58,13 @@ const updateCurrentSchoolYear = async (req, res) => {
     const newStartYear = startYear + 1;
     const newEndYear = endYear + 1;
     const newSchoolYear = `${newStartYear}-${newEndYear}`;
+    const sections = await Section.find({ schoolYear: currentSchoolYear })
     
+    for (const section of sections) {
+      if (section.students.length === 0) {
+        return res.status(400).json({ message: "Some sections still do not have students yet, it is not possible to update the school year" });
+      }
+    }
     // Fetch all classes with their sections in a single query
     const allClasses = await Class.find({ schoolYear: currentSchoolYear })
       .populate({
@@ -71,6 +77,8 @@ const updateCurrentSchoolYear = async (req, res) => {
     if(!allClasses || allClasses.length === 0) {
       return res.json({ message: "No classes found for the current school year. It's not possible to update school year when there are yet no classes" });
     }
+
+    
 
     // Prepare data structure for missing grades check
     const classStudentMap = new Map();
