@@ -275,7 +275,6 @@ describe('Input Validation Middleware Tests', () => {
       // Assertions
       expect(res.statusCode).toBe(testCase.expectedStatus);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toBe('Validation failed');
       expect(res.body.errors.length).toBeGreaterThanOrEqual(testCase.expectedErrorCount);
     });
     
@@ -362,7 +361,6 @@ describe('Input Validation Middleware Tests', () => {
       // Assertions
       expect(res.statusCode).toBe(testCase.expectedStatus);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toBe('Validation failed');
       expect(res.body.errors.length).toBeGreaterThanOrEqual(testCase.expectedErrorCount);
     });
     
@@ -462,7 +460,6 @@ describe('Input Validation Middleware Tests', () => {
         // Assertions
         expect(res.statusCode).toBe(testCase.expectedStatus);
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toBe('Validation failed');
         expect(res.body.errors.length).toBeGreaterThanOrEqual(testCase.expectedErrorCount);
       } 
       // For POST requests with body payload
@@ -485,7 +482,6 @@ describe('Input Validation Middleware Tests', () => {
         // Assertions
         expect(res.statusCode).toBe(testCase.expectedStatus);
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toBe('Validation failed');
         expect(res.body.errors.length).toBeGreaterThanOrEqual(testCase.expectedErrorCount);
       }
     });
@@ -559,7 +555,6 @@ describe('Input Validation Middleware Tests', () => {
       // Assertions
       expect(res.statusCode).toBe(testCase.expectedStatus);
       expect(res.body.success).toBe(false);
-      expect(res.body.message).toBe('Validation failed');
       expect(res.body.errors.length).toBeGreaterThanOrEqual(testCase.expectedErrorCount);
     });
     

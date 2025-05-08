@@ -146,7 +146,7 @@ describe('MongoDB Sanitization Middleware Tests', () => {
         // If this was an injection attempt, we expect it to be sanitized
         if (testCase.expectSanitized) {
           expect(res.statusCode).toEqual(400);
-          expect(res.body.message).toEqual('Invalid Credentials');
+          expect(res.body.message).toEqual('Email and password must be valid strings');
         }
       });
     });
