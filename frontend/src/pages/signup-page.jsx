@@ -24,15 +24,18 @@ function SignupPage() {
         password: "",
         password_confirmation: "",
         role: role,
-        gradeLevel: selectedGradeLevel,
+        gradeLevel: 7, // Default grade level for new students
     });
     
     useEffect(() => {
+      // Extract numeric grade level from string (e.g., "Grade 8" -> 8)
+      const numericGradeLevel = selectedGradeLevel ? parseInt(selectedGradeLevel.replace(/\D/g, '')) : 7;
+      
       setFormData((prevData) => ({
           ...prevData,
-          gradeLevel: selectedGradeLevel,
+          gradeLevel: isNewStudent === "New" ? 7 : numericGradeLevel, // Use 7 for new students, extracted number for transferees
       }));
-    }, [selectedGradeLevel]);
+    }, [selectedGradeLevel, isNewStudent]);
 
   
     const {signup} = useAuthStore();
@@ -120,6 +123,7 @@ function SignupPage() {
     const handleSubmit = (e) =>{
         e.preventDefault();
         const success = validateForm();
+        console.log(formData.gradeLevel)
 
         if(success) {
           signup(formData);
@@ -329,7 +333,7 @@ function SignupPage() {
                         <label className="block text-lg font-medium text-gray-700">Select Current Grade Level</label>
                         <select className="mt-2 w-full p-3 border rounded-md" value={selectedGradeLevel} onChange={(e) => setSelectedGradeLevel(e.target.value)}>
                             <option value="">Select Grade Level</option>
-                            {["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"].map((grade) => (
+                            {["Grade 7", "Grade 8", "Grade 9", "Grade 10"].map((grade) => (
                                 <option key={grade} value={grade}>{grade}</option>
                             ))}
                         </select>
