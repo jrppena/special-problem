@@ -326,79 +326,6 @@ const AdminManageClassPage = () => {
 
   let fileInput = null;
 
-  const handleImportClasses = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      console.error("No file selected.");
-      return;
-    }
-  
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const buffer = e.target.result;
-      const data = new Uint8Array(buffer);
-  
-      const workbook = new Exceljs.Workbook();
-      try {
-        await workbook.xlsx.load(data);
-  
-        const worksheet = workbook.getWorksheet(1);
-        if (!worksheet) {
-          console.error("No worksheet found.");
-          return;
-        }
-  
-        const classes = [];
-        worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber > 1) {
-            const subjectName = row.getCell(1).value;
-            const gradeLevel = parseInt(row.getCell(2).value);
-            const sectionNames = row.getCell(3).value ? row.getCell(3).value.split(";") : [];
-            const teacherFullNames = row.getCell(4).value ? row.getCell(4).value.split(";").map(name => name.trim()) : [];
-  
-            const sectionsMapped = sectionNames.map(sectionName => {
-              const trimmedSectionName = sectionName.trim();
-              const section = sections.find(s => s.name === trimmedSectionName);
-              return section ? section._id : trimmedSectionName;
-            });
-  
-            const teachersMapped = teacherFullNames.map(fullName => {
-              const teacher = Object.values(teachers).find(
-                (teacher) => `${teacher.firstName} ${teacher.lastName}` === fullName
-              );
-              
-              return teacher ? teacher._id : fullName;
-            });
-  
-            const classesData = {
-              subjectName: subjectName,
-              gradeLevel: gradeLevel,
-              sections: sectionsMapped,
-              teachers: teachersMapped,
-              schoolYear: selectedSchoolYear,
-            };
-  
-            classes.push(classesData);
-          }
-        });
-  
-        createClassThroughImport(classes, selectedSchoolYear);
-        fileInput.value = null;
-  
-      } catch (error) {
-        console.error("Error reading the Excel file:", error);
-      }
-    };
-  
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleDeleteAllClasses = () => {
-    if (window.confirm("Are you sure you want to delete all classes?")) {
-      deleteAllClassesGivenSchoolYear(selectedSchoolYear);
-    }
-  };
-
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -563,28 +490,6 @@ const AdminManageClassPage = () => {
                   Add New Class
                 </button>
 
-                {/* Import Classes Button */}
-                <button className="w-full sm:w-auto">
-                  <label className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 cursor-pointer w-full">
-                    Import Classes
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={handleImportClasses}
-                      ref={(input) => (fileInput = input)}
-                    />
-                  </label>
-                </button>
-
-                {/* Delete Classes Button (visible only if classes exist) */}
-                {classes.length > 0 && (
-                  <button
-                    onClick={handleDeleteAllClasses}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full sm:w-auto"
-                  >
-                    Delete Classes for the School Year
-                  </button>
-                )}
               </div>
             </div>
           </div>
