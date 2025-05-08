@@ -27,7 +27,7 @@ const createSection = async (req, res) => {
             return res.status(404).json({message: "Adviser/s not found"});
         }
 
-        const existingSection = await Section.findOne({name: sectionName,  schoolYear});
+        const existingSection = await Section.findOne({name: sectionName, gradeLevel: gradeLevel,  schoolYear});
 
         if(existingSection){
             return res.status(400).json({message: "Section already exists"});
