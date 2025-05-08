@@ -223,8 +223,8 @@ const updateCurrentSchoolYear = async (req, res) => {
       studentAverages.set(studentId, average);
     });
     
-    // Get all students below grade 12 for potential promotion
-    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 12 }});
+    // Get all students below grade 10 for potential promotion
+    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 10 }});
     
     // Filter students based on their grade average
     const promotedStudents = [];
@@ -266,21 +266,21 @@ const updateCurrentSchoolYear = async (req, res) => {
     
     const bulkResult = await Student.bulkWrite(bulkOps);
     
-    // Handle graduation for 12th grade students - only graduate those with avg > 85
-    const grade12Students = await Student.find({ gradeLevel: 12 });
+    // Handle completion for 10th grade students - only graduate those with avg > 85
+    const grade10Students = await Student.find({ gradeLevel: 10 });
     
-    // Process each grade 12 student
-    const graduatedCount = await Promise.all(grade12Students.map(async (student) => {
+    // Process each grade 10 student
+    const completedCount = await Promise.all(grade10Students.map(async (student) => {
       const studentId = student._id.toString();
       const average = studentAverages.get(studentId) || 0;
       
       if (average > 85) {
-        // Student meets graduation requirements
-        student.academicStatus = "Graduated";
+        // Student meets completion requirements
+        student.academicStatus = "Completed";
         await student.save();
         return true;
       } else {
-        // Student doesn't meet grade requirements for graduation
+        // Student doesn't meet grade requirements for completion
         student.academicStatus = "Retained";
         await student.save();
         
@@ -314,7 +314,7 @@ const updateCurrentSchoolYear = async (req, res) => {
       promotionSummary: {
         totalStudents: studentsToEvaluate.length + grade12Students.length,
         promotedStudents: bulkResult.modifiedCount,
-        graduatedStudents: graduatedCount,
+        completedStudents: completedCount,
         failedPromotions: failedStudents.length,
         studentsRetained: failedStudents
       }

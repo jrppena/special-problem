@@ -183,8 +183,8 @@ const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
                             <p className="text-2xl font-bold">{promotionSummary.promotedStudents}</p>
                         </div>
                         <div className="bg-purple-50 p-4 rounded-md">
-                            <p className="text-sm text-gray-600">Graduated Students</p>
-                            <p className="text-2xl font-bold">{promotionSummary.graduatedStudents || 0}</p>
+                            <p className="text-sm text-gray-600">Completed Students</p>
+                            <p className="text-2xl font-bold">{promotionSummary.completedStudents || 0}</p>
                         </div>
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-md">
@@ -213,7 +213,7 @@ const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
                                             <td className="border border-gray-300 px-4 py-2">{student.average.toFixed(2)}</td>
                                             <td className="border border-gray-300 px-4 py-2">{student.currentGrade}</td>
                                             <td className="border border-gray-300 px-4 py-2">
-                                                {student.status || (student.currentGrade === 12 ? "Senior Not Graduated" : "Retained")}
+                                                {student.status || (student.currentGrade === 10 ? "Grade 10 Not Completed" : "Retained")}
                                             </td>
                                         </tr>
                                     ))}
@@ -221,7 +221,7 @@ const PromotionResultsModal = ({ isOpen, onClose, promotionData }) => {
                             </table>
                         </div>
                         <p className="mt-4 text-sm text-gray-600">
-                            Students with grade averages below or equal to 85 are not promoted to the next grade level or graduated.
+                            Students with grade averages below or equal to 85 are not promoted to the next grade level or completed 10th grade.
                         </p>
                     </div>
                 )}
