@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "../../components/page-header";
 import Navbar from "../../components/navigation-bar";
 import Dropdown from "../../components/drop-down";
-import HonorsList from "./honors-list"; // Import the new HonorsList component
+import HonorsList from "./honors-list";
 import toast from "react-hot-toast";
 
 import { useStudentStore } from "../../store/useStudentStore";
@@ -37,7 +37,8 @@ const StudentGradesViewPage = () => {
     getEnrolledClassesGrades, 
     grades, 
     isGettingGrades,
-    clearGrades
+    clearGrades,
+    clearClasses,
   } = useStudentStore();
   const { authUser } = useAuthStore();
 
@@ -65,12 +66,15 @@ const StudentGradesViewPage = () => {
   useEffect(() => {
     // Clear grades data when component mounts to avoid seeing stale data
     clearGrades();
+    clearClasses();
     
     return () => {
       // Also clear grades when component unmounts
       clearGrades();
+      clearClasses();
+
     };
-  }, [clearGrades]);
+  }, [clearGrades, clearClasses,selectedSchoolYear]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -127,7 +131,47 @@ const StudentGradesViewPage = () => {
     return average.toFixed(2);
   };
 
-  // Combined loading state to show loader in both scenarios
+  // Check if all quarters have grades for a class
+  const hasCompleteQuarterGrades = (classGrade) => {
+    return ["Q1", "Q2", "Q3", "Q4"].every(quarter => 
+      classGrade.grades[quarter] !== undefined && 
+      classGrade.grades[quarter] !== null &&
+      classGrade.grades[quarter] !== "-" &&
+      !isNaN(parseFloat(classGrade.grades[quarter]))
+    );
+  };
+
+  // Determine if a class is passed (85% or higher)
+  const getClassRemarks = (classGrade) => {
+    if (!hasCompleteQuarterGrades(classGrade)) {
+      return "Incomplete";
+    }
+    
+    const average = parseFloat(classGrade.average);
+    return !isNaN(average) && average >= 85 ? "Passed" : "Failed";
+  };
+
+  // Get overall remarks
+  const getOverallRemarks = () => {
+    // Check if all classes have complete grades
+    const hasAllCompleteGrades = filteredGradesData.every(classGrade => 
+      hasCompleteQuarterGrades(classGrade)
+    );
+    
+    if (!hasAllCompleteGrades) {
+      return "Incomplete";
+    }
+    
+    // Check if all classes are passed
+    const allPassed = filteredGradesData.every(classGrade => {
+      const average = parseFloat(classGrade.average);
+      return !isNaN(average) && average >= 85;
+    });
+    
+    return allPassed ? "Passed" : "Failed";
+  };
+
+  // Combined loading state
   const showLoading = isLoadingSchoolYears || isGettingSchoolYears || isLoading || isGettingGrades;
 
   // If loading school years, show loader
@@ -183,13 +227,15 @@ const StudentGradesViewPage = () => {
           </div>
         </div>
 
-        {classes.length === 0 && !showLoading ? (
+        {/* Content Rendering Section - Fixed Logic */}
+        {showLoading ? (
+          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
+            <Loader className="size-10 animate-spin" />
+            <p className="ml-3 text-gray-500">Loading grades...</p>
+          </div>
+        ) : classes.length === 0 ? (
           <div className="bg-white p-6 rounded-lg shadow mt-5 text-center text-gray-500">
             You are not enrolled in any classes for the selected school year.
-          </div>
-        ) : isLoading || isGettingGrades ? (
-          <div className="bg-white p-6 rounded-lg shadow mt-5 flex justify-center items-center h-96">
-            <p className="text-gray-500">Loading grades...</p>
           </div>
         ) : (
           <>
@@ -215,7 +261,10 @@ const StudentGradesViewPage = () => {
                         </th>
                       )}
                       {selectedQuarter === "all" && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                      )}
+                      {selectedQuarter === "all" && (
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
                       )}
                     </tr>
                   </thead>
@@ -239,14 +288,25 @@ const StudentGradesViewPage = () => {
                             {classGrade.grades[selectedQuarter] || "-"}
                           </td>
                         )}
-                      {selectedQuarter === "all" && (
-                        <td className="px-6 py-4 whitespace-nowrap">{classGrade.average || "-"}</td>
-                      )}                      
+                        {selectedQuarter === "all" && (
+                          <td className="px-6 py-4 whitespace-nowrap">{classGrade.average || "-"}</td>
+                        )}
+                        {selectedQuarter === "all" && (
+                          <td className={`px-6 py-4 whitespace-nowrap font-semibold ${
+                            getClassRemarks(classGrade) === "Passed" 
+                              ? "text-green-600" 
+                              : getClassRemarks(classGrade) === "Failed" 
+                                ? "text-red-600" 
+                                : "text-yellow-600"
+                          }`}>
+                            {getClassRemarks(classGrade)}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
                   {/* Add footer with averages */}
-                  {selectedClass === "all" && (
+                  {selectedClass === "all" && filteredGradesData.length > 0 && (
                     <tfoot>
                       <tr className="bg-gray-50">
                         {selectedClass === "all" && (
@@ -268,24 +328,61 @@ const StudentGradesViewPage = () => {
                             {calculateQuarterAverage(selectedQuarter)}
                           </td>
                         )}
-                          {selectedQuarter === "all" && (
-                            <td className="px-6 py-4 whitespace-nowrap font-semibold">
-                              {filteredGradesData.length > 0
-                                ? (
-                                    (filteredGradesData.reduce(
-                                      (sum, classGrade) => sum + parseFloat(classGrade.average || 0),
-                                      0
-                                    ) / filteredGradesData.length).toFixed(2)
-                                  )
-                                : "-"}
-                            </td>
-                      )}
+                        {selectedQuarter === "all" && (
+                          <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                            {filteredGradesData.length > 0
+                              ? (
+                                  (filteredGradesData.reduce(
+                                    (sum, classGrade) => sum + parseFloat(classGrade.average || 0),
+                                    0
+                                  ) / filteredGradesData.length).toFixed(2)
+                                )
+                              : "-"}
+                          </td>
+                        )}
+                        {selectedQuarter === "all" && (
+                          <td className={`px-6 py-4 whitespace-nowrap font-semibold ${
+                            getOverallRemarks() === "Passed" 
+                              ? "text-green-600" 
+                              : getOverallRemarks() === "Failed" 
+                                ? "text-red-600" 
+                                : "text-yellow-600"
+                          }`}>
+                            {getOverallRemarks()}
+                          </td>
+                        )}
                       </tr>
                     </tfoot>
                   )}
                 </table>
               </div>
             </div>
+
+            {/* Overall Status Card */}
+            {filteredGradesData.length > 0 && selectedClass === "all" && selectedQuarter === "all" && (
+              <div className={`mt-5 p-4 rounded-lg shadow border-l-4 ${
+                getOverallRemarks() === "Passed" 
+                  ? "bg-green-50 border-green-500" 
+                  : getOverallRemarks() === "Failed" 
+                    ? "bg-red-50 border-red-500" 
+                    : "bg-yellow-50 border-yellow-500"
+              }`}>
+                <h3 className="text-lg font-semibold mb-2">
+                  {getOverallRemarks() === "Passed" 
+                    ? "Congratulations!" 
+                    : getOverallRemarks() === "Failed" 
+                      ? "Attention Required" 
+                      : "Grades Incomplete"}
+                </h3>
+                <p>
+                  {getOverallRemarks() === "Passed" 
+                    ? "You have passed all your subjects. Keep up the good work!" 
+                    : getOverallRemarks() === "Failed" 
+                      ? "You need to improve in one or more subjects. Please consult with your teacher." 
+                      : "Some of your grades are not yet complete. Check back later for full results."}
+                </p>
+              </div>
+            )}
 
             {/* Honors List component */}
             {filteredGradesData.length > 0 && selectedClass === "all" && (

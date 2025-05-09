@@ -4,6 +4,8 @@ const getPendingUsers = async (req, res) => {
     try {
         const { page = 1, limit = 10, showAll = false, role } = req.query;
         
+        console.log("Query Params: ", req.query);
+        
         // Build the query
         const query = { accountStatus: "Pending" };
         

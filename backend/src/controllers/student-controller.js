@@ -1,102 +1,165 @@
-import Student from "../models/student.model.js"; // adjust the path as needed
+import Student from "../models/student.model.js"; 
 import Section from "../models/section.model.js";
 import Class from "../models/class.model.js";
 import Grade from "../models/grade.model.js";
+import Config from "../models/config.model.js"; 
+import mongoose from "mongoose";
+import { request } from "express";
 
 
 
-const getEnrolledClasses = async (req,res) => {
-    const studentId = req.query.studentId;
-    const schoolYear = req.query.schoolYear;
-
-    try {
-        const section = await Section.findOne({ students: { $in: [studentId] }, schoolYear: schoolYear })
-        
-        if(!section){
-            return res.status(204).json({message: "No section found for the student for the given school year", classes: []});
-        }
-
-       
-        const classes = await Class.find({ sections:{$in: [section._id]}, schoolYear:schoolYear});
-        if(!classes){
-            return res.status(204).json({message: "No classes found for the student for the given school year", classes: []});
-        }
-
-        return res.status(200).json(classes);
-     
-
-    }catch(error){
-        console.log("Error in getEnrolledClasses: ", error);
-        return res.status(500).json({message: "Something went wrong"});
-    }
-}
-
-const getEnrolledClassesGrades = async(req,res) => {
-    const classes = req.query.classes;
-    const student = req.query.student;
-    const schoolYear = req.query.schoolYear;
-
-    try {
-        const dummyGradesData = [];
-        let counter = 0;
-        // Iterate over each class
-        for (const classItem of classes) {
-            // Fetch grades for the given class, student, and school 
-            
-            const grades = await Grade.find({
-                class: classItem._id, 
-                student: student, 
-            });
+const getEnrolledClasses = async (req, res) => {
+    const studentId = req.user._id;
+    const requestedSchoolYear = req.query.schoolYear;
     
-            // Initialize the object for this class
+    try {
+       // First, validate the requested school year
+       const config = await Config.findOne();
+       if (!config) {
+           return res.status(500).json({ message: "System configuration not found" });
+       }
+       
+       // Check if the requested school year is valid
+       if (!config.schoolYears.includes(requestedSchoolYear)) {
+           return res.status(400).json({ message: "Invalid school year requested" });
+       }
+       
+       // Proceed with existing logic
+       const section = await Section.findOne({
+           students: { $in: [studentId] },
+           schoolYear: requestedSchoolYear
+       });
+
+        if (!section) {
+            return res.status(200).json({ message: "No section found for the student for the given school year", classes: [] });
+        }
+
+        const classes = await Class.find({
+            sections: { $in: [section._id] },
+            schoolYear: requestedSchoolYear
+        });
+
+        if (!classes || classes.length === 0) {
+            return res.status(200).json({ message: "No classes found for the student for the given school year", classes: [] });
+        }
+
+        return res.status(200).json({classes: classes});
+
+    } catch (error) {
+        console.error("Error in getEnrolledClasses:", error);
+        return res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+const getEnrolledClassesGrades = async (req, res) => {
+    let requestedClasses = req.query.classes;
+    const studentId = req.user._id;
+    const schoolYear = req.query.schoolYear;
+    if (typeof requestedClasses === 'string') {
+        requestedClasses = JSON.parse(requestedClasses);
+      }
+
+    try {
+        // Validate school year
+        const config = await Config.findOne();
+        if (!config || !config.schoolYears.includes(schoolYear)) {
+            return res.status(400).json({ message: "Invalid school year requested" });
+        }
+
+        // First, get all classes the student is legitimately enrolled in
+        const studentSections = await Section.find({
+            students: { $in: [studentId] },
+            schoolYear
+        });
+        
+        if (!studentSections || studentSections.length === 0) {
+            return res.status(200).json({ message: "Student not enrolled in any sections for this school year", data: [] });
+        }
+        
+        const sectionIds = studentSections.map(section => section._id);
+        
+        const enrolledClasses = await Class.find({
+            sections: { $in: sectionIds },
+            schoolYear
+        });
+        
+        if (!enrolledClasses || enrolledClasses.length === 0) {
+            return res.status(200).json({ message: "No classes found for this student", data: [] });
+        }
+        
+        // Get valid class IDs that the student is actually enrolled in
+        const validClassIds = enrolledClasses.map(cls => cls._id.toString());
+        
+        // Filter requested classes to only include those the student is enrolled in
+        const validRequestedClasses = requestedClasses.filter(cls => 
+            validClassIds.includes(cls._id.toString())
+        );
+        
+        if (validRequestedClasses.length === 0) {
+            return res.status(403).json({ message: "Not enrolled in any of the requested classes", data: [] });
+        }
+        
+        // Now process grades only for valid classes
+        const gradesData = [];
+        
+        for (const classItem of validRequestedClasses) {
+            const grades = await Grade.find({
+                class: classItem._id,
+                student: studentId,
+            });
+            
             const gradeMapData = {
                 classId: classItem._id,
-                className: classItem.subjectName, // Using subjectName as the class name
-                grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" }, // Set default grades as "-"
-                average: "-" // Default average
+                className: classItem.subjectName,
+                grades: { Q1: "-", Q2: "-", Q3: "-", Q4: "-" },
+                average: "-"
             };
             
-            // Populate grades for each grading period (Q1, Q2, Q3, Q4)
             let totalGrades = 0;
             let validGradesCount = 0;
             
             grades.forEach(grade => {
                 if (gradeMapData.grades.hasOwnProperty(grade.gradingPeriod)) {
-                const gradeValue = grade.gradeValue;
-            
-                // Check if the gradeValue is a valid number
-                if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
-                    gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString(); // Convert grade to string
-                    totalGrades += gradeValue; // Add to total grades
-                    validGradesCount++; // Increment valid grades count
-                }
+                    const gradeValue = grade.gradeValue;
+                    if (typeof gradeValue === 'number' && !isNaN(gradeValue)) {
+                        gradeMapData.grades[grade.gradingPeriod] = gradeValue.toString();
+                        totalGrades += gradeValue;
+                        validGradesCount++;
+                    }
                 }
             });
             
-            // Calculate the average if there are valid grades
             if (validGradesCount > 0) {
-                gradeMapData.average = (totalGrades / validGradesCount).toFixed(2); // Round to 2 decimal places
-            } else {
-                gradeMapData.average = "-"; // No valid grades available
+                gradeMapData.average = (totalGrades / validGradesCount).toFixed(2);
             }
-  
-  
-    
-            // Push the gradeMapData object to dummyGradesData
-            dummyGradesData.push(gradeMapData);
+            
+            gradesData.push(gradeMapData);
         }
         
-        res.status(200).json(dummyGradesData);
+        return res.status(200).json(gradesData);
+        
     } catch (err) {
-        console.error("Error:", err);
+        console.error("Error in getEnrolledClassesGrades:", err);
+        return res.status(500).json({ message: "Something went wrong." });
     }
-}
+};
+
 
 const generateChartData = async (req, res) => {
-    const { studentId, schoolYear, dataType, selectedSubject, selectedQuarter } = req.query;
+    const {schoolYear, dataType, selectedSubject, selectedQuarter} = req.query;
+    const studentId = req.user._id;
+
+    if(!studentId || !schoolYear || !dataType) {
+        return res.status(400).json({ message: "Missing required parameters" });
+    }
 
     try {
-        // Get all grades for the student in the selected school year
+        // Validate school year against the Config model
+        const config = await Config.findOne();
+        if (!config || !config.schoolYears.includes(schoolYear)) {
+            return res.status(400).json({ message: "Invalid school year requested" });
+        }
+
         const section = await Section.findOne({ 
             students: { $in: [studentId] }, 
             schoolYear: schoolYear 
@@ -177,6 +240,11 @@ const generateChartData = async (req, res) => {
                     return res.status(400).json({ message: "Subject selection required for this chart type" });
                 }
                 
+                // Validate selectedSubject is one of student's enrolled classes
+                if (!classIds.some(id => id.toString() === selectedSubject)) {
+                    return res.status(403).json({ message: "You are not enrolled in this subject" });
+                }
+                
                 const subjectData = gradesArray.find(grade => grade.classId.toString() === selectedSubject);
                 
                 if (!subjectData) {
@@ -205,6 +273,12 @@ const generateChartData = async (req, res) => {
             case "subjectsInOneQuarter":
                 if (!selectedQuarter) {
                     return res.status(400).json({ message: "Quarter selection required for this chart type" });
+                }
+                
+                // Validate that the quarter is a legitimate value
+                const validQuarters = ["Q1", "Q2", "Q3", "Q4"];
+                if (!validQuarters.includes(selectedQuarter)) {
+                    return res.status(400).json({ message: "Invalid quarter selected" });
                 }
                 
                 chartData = gradesArray.map(subject => ({

@@ -1,14 +1,31 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Mail, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
+import { useChatStore } from "../store/useChatStore";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const { authUser, logout } = useAuthStore();
-  
+  const { hasUnreadMessages, resetUnreadMessages, subscribeToAllMessages, unsubscribeFromAllMessages } = useChatStore();
+
+  useEffect(() => {
+    // Subscribe to all messages for notification purposes
+    subscribeToAllMessages();
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribeFromAllMessages();
+    };
+  }, [subscribeToAllMessages, unsubscribeFromAllMessages]);
+
   const handleLogout = () => {
     logout();
+  }
+
+  const handleMessageClick = () => {
+    resetUnreadMessages();
+    navigate("/message");
   }
 
   return (
@@ -33,7 +50,7 @@ const Navbar = () => {
             <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent sm:text-2xl">
               GSHS
             </span>
-            
+
             {/* Logo - Fixed aspect ratio with min-width to prevent squishing */}
             <div className="relative flex items-center justify-center px-1 sm:px-3">
               <div className="hidden sm:block absolute -left-3 w-px h-8 bg-gradient-to-b from-gray-300 to-transparent"></div>
@@ -46,21 +63,25 @@ const Navbar = () => {
               </div>
               <div className="hidden sm:block absolute -right-3 w-px h-8 bg-gradient-to-b from-gray-300 to-transparent"></div>
             </div>
-            
+
             {/* App Name - Responsive Text */}
             <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent sm:text-2xl">
               ACADBRIDGE
             </span>
           </div>
-        </div>  
+        </div>
 
         {/* Right Section - Icons */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <button 
-            onClick={() => navigate("/message")} 
-            className="p-1 rounded-full bg-white shadow-sm hover:bg-gray-200 transition cursor-pointer sm:p-2"
+          <button
+            onClick={handleMessageClick}
+            className="p-1 rounded-full bg-white shadow-sm hover:bg-gray-200 transition cursor-pointer sm:p-2 relative"
           >
-            <Mail className="w-5 h-5 text-gray-900 sm:w-7 sm:h-7" />
+            <Mail className={`w-5 h-5 sm:w-7 sm:h-7 ${hasUnreadMessages ? "text-red-600" : "text-gray-900"} transition-colors duration-300`} />
+
+            {hasUnreadMessages && (
+              <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse sm:w-4 sm:h-4"></span>
+            )}
           </button>
           <button
             onClick={handleLogout}

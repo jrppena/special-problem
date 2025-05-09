@@ -6,7 +6,7 @@ import { useConfigStore } from "../../store/useConfigStore";
 import { useSectionStore } from "../../store/useSectionStore";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useTeacherStore } from "../../store/useTeacherStore";
-import { Edit2, Save, Download, Upload, FileDown, Loader } from "lucide-react";
+import { Edit2, Save, Download, Upload, FileDown, Loader, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
@@ -14,13 +14,14 @@ import Pagination from "../../components/pagination";
 
 const TeacherManageGradesPage = () => {
   // Add ConfigStore for school years
-  const { fetchSchoolYears, isGettingSchoolYears } = useConfigStore();
-  
+  const { fetchSchoolYears, isGettingSchoolYears, fetchCurrentSchoolYear, currentSchoolYear } = useConfigStore();
+
   // States for school years and loading
   const [schoolYears, setSchoolYears] = useState([]);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [currentSchoolYearState, setCurrentSchoolYearState] = useState(currentSchoolYear);
+
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedQuarter, setSelectedQuarter] = useState("all");
@@ -45,10 +46,12 @@ const TeacherManageGradesPage = () => {
     const getSchoolYears = async () => {
       try {
         const years = await fetchSchoolYears();
+        const currentSchoolYear = await fetchCurrentSchoolYear();// Default to first year if current year is not set
         if (years && years.length > 0) {
           setSchoolYears(years);
           setSelectedSchoolYear(years[0]); // Set first school year as default
           setIsLoading(false);
+          setCurrentSchoolYearState(currentSchoolYear);
         }
       } catch (error) {
         console.error("Error fetching school years:", error);
@@ -56,7 +59,7 @@ const TeacherManageGradesPage = () => {
         setIsLoading(false);
       }
     };
-    
+
     getSchoolYears();
   }, [fetchSchoolYears]);
 
@@ -64,6 +67,8 @@ const TeacherManageGradesPage = () => {
   useEffect(() => {
     if (selectedSchoolYear && authUser?._id) {
       getAssignedClasses(authUser._id, selectedSchoolYear);
+      setSelectedClass(null);
+      setSelectedSection(null);
     }
   }, [selectedSchoolYear, authUser?._id, getAssignedClasses]);
 
@@ -79,10 +84,10 @@ const TeacherManageGradesPage = () => {
   }, [assignedClasses]);
 
   useEffect(() => {
-    if (selectedSection && selectedClass && selectedSchoolYear) {
+    if (selectedSection && selectedClass && selectedSchoolYear && assignedClasses.length > 0) {
       getClassGrades(selectedClass._id, "all", selectedSection._id, selectedSchoolYear);
     }
-  }, [selectedClass, selectedSection, selectedSchoolYear, getClassGrades]);
+  }, [selectedClass, selectedSection, assignedClasses, getClassGrades]);
 
   useEffect(() => {
     if (selectedSection && selectedSection.students) {
@@ -96,7 +101,7 @@ const TeacherManageGradesPage = () => {
 
   const handleGradeChange = (studentId, quarter, value) => {
     const normalizedValue = value.trim() === "" ? "-" : value;
-    
+
     setEditedGrades(prevGrades => ({
       ...prevGrades,
       [studentId]: {
@@ -133,12 +138,12 @@ const TeacherManageGradesPage = () => {
     const hasInvalidGrades = Object.entries(editedGrades).some(([studentId, grades]) =>
       Object.entries(grades).some(([quarter, value]) => {
         const gradeNum = parseFloat(value);
-        return !isNaN(gradeNum) && (gradeNum > 100 || gradeNum < 0);
-      })
-    );
+        return !isNaN(gradeNum) && (gradeNum > 100 || gradeNum < 75);
+      }
+      ));
 
     if (hasInvalidGrades) {
-      toast.error("Grades must be between 0 and 100.");
+      toast.error("Grades must be between 75 and 100.");
       return;
     }
 
@@ -150,16 +155,15 @@ const TeacherManageGradesPage = () => {
     );
 
     if (hasBlankExistingGrades) {
-      toast.error("Existing grades cannot be left blank. Please enter a valid number.");
+      toast.error("Existing grades cannot be left blank. Please enter a grade between 75 and 100.");
       return;
     }
 
     try {
       const response = await updateStudentGrades(selectedClass, editedGrades, selectedSection);
-      console.log(response);
       setEditMode(false);
       setIsSaveAllEnabled(false);
-      toast.success("Grades updated successfully.");
+ 
     } catch (error) {
       toast.error("Failed to save all grades.");
       console.log("Error saving grades:", error);
@@ -187,6 +191,27 @@ const TeacherManageGradesPage = () => {
     return sortedStudents;
   };
 
+  // Calculate student average and determine if they pass or fail
+  const calculateAverage = (studentId) => {
+    const grades = classGrades[studentId] || {};
+    const validGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .map(quarter => grades[quarter])
+      .filter(grade => grade && grade !== "-" && !isNaN(parseFloat(grade)));
+    
+    if (validGrades.length === 0) return { average: "-", remarks: "" };
+    
+    const sum = validGrades.reduce((acc, grade) => acc + parseFloat(grade), 0);
+    const average = (sum / validGrades.length).toFixed(2);
+    
+    // Check if all 4 quarters have grades before showing remarks
+    const hasAllQuarterGrades = ["Q1", "Q2", "Q3", "Q4"]
+      .every(quarter => grades[quarter] && grades[quarter] !== "-" && !isNaN(parseFloat(grades[quarter])));
+    
+    const remarks = hasAllQuarterGrades ? (parseFloat(average) >= 85 ? "Pass" : "Failed") : "";
+    
+    return { average, remarks };
+  };
+
   const quarterOptions = [
     { value: "Q1", label: "Quarter 1" },
     { value: "Q2", label: "Quarter 2" },
@@ -194,13 +219,13 @@ const TeacherManageGradesPage = () => {
     { value: "Q4", label: "Quarter 4" },
     { value: "all", label: "All Quarters" },
   ];
-  
+
   // Pagination Logic for Students
   const paginatedStudents = isShowingAll
     ? sortStudents(selectedSection?.students || []) // Always sort students if showing all
     : (selectedSection?.students ? sortStudents(selectedSection.students) : []).slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
     );
 
   const handleDownloadTemplate = async () => {
@@ -208,15 +233,15 @@ const TeacherManageGradesPage = () => {
       toast.error("Please select a section first.");
       return;
     }
-  
+
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Grades Template");
-  
+
     // Header Row
     const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
     const headerRow = sheet.addRow(headers);
     headerRow.font = { bold: true };
-  
+
     // Populate student list
     selectedSection.students.forEach((student) => {
       sheet.addRow([
@@ -229,7 +254,7 @@ const TeacherManageGradesPage = () => {
         "",
       ]);
     });
-  
+
     // Auto-adjust column width based on the longest value in each column
     sheet.columns.forEach((column, index) => {
       let maxLength = headers[index].length; // Start with header length
@@ -241,15 +266,15 @@ const TeacherManageGradesPage = () => {
       });
       column.width = maxLength + 2; // Add some padding
     });
-  
+
     // Generate the file
     const buffer = await workbook.xlsx.writeBuffer();
     const fileName = `Grades_Template_${selectedClass.subjectName}_Grade${selectedClass.gradeLevel}_${selectedSection.name}.xlsx`;
     saveAs(new Blob([buffer], { type: "application/octet-stream" }), fileName);
-  
+
     toast.success("Template downloaded successfully.");
   };
-  
+
   /**
    * Download current grades to Excel file
    */
@@ -263,11 +288,72 @@ const TeacherManageGradesPage = () => {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet("Class Grades");
 
+      sheet.columns = [
+        { width: 5 },    // Column A - narrow for row numbers
+        { width: 20 },   // Column B
+        { width: 20 },   // Column C
+        { width: 20 },   // Column D
+        { width: 20 },   // Column E
+        { width: 20 },   // Column F
+        { width: 20 },   // Column G
+        { width: 20 },   // Column H - Average
+        { width: 20 },   // Column I - Remarks
+      ];
+
+      // Header rows
+      sheet.mergeCells('A1:I1');
+      sheet.getCell('A1').value = 'Department of Education';
+
+      sheet.mergeCells('A2:I2');
+      sheet.getCell('A2').value = 'Region V';
+
+      sheet.mergeCells('A3:I3');
+      sheet.getCell('A3').value = 'Division of Camarines Sur';
+
+      sheet.mergeCells('A4:I4');
+      sheet.getCell('A4').value = 'Goa District';
+
+      sheet.mergeCells('A5:I5');
+      sheet.getCell('A5').value = 'GOA SCIENCE HIGH SCHOOL';
+
+      sheet.mergeCells('A6:I6');
+      sheet.getCell('A6').value = selectedSection?.schoolYear;
+
+      sheet.mergeCells('A7:I7');
+      // Add empty row
+      sheet.addRow([]);
+
+      // Title row
+      sheet.mergeCells('A8:I8');
+      sheet.getCell('A8').value = `${selectedClass.subjectName} - ${selectedClass.gradeLevel} Class Grades`;
+
+      sheet.mergeCells('A9:I9');
+      sheet.getCell('A9').value = `Grade ${selectedSection?.gradeLevel} - ${selectedSection?.name}`;
+
+      sheet.addRow([]);
+
+      // Style the cells - alignment and fonts only, no borders
+      for (let i = 1; i <= 9; i++) {
+        const cell = sheet.getCell(`A${i}`);
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Special styling for the school name (bold)
+        if (i === 5) {
+          cell.font = { bold: true };
+        }
+
+        // Special styling for the title (bold and size 14)
+        if (i === 8) {
+          cell.font = { bold: true, size: 14 };
+        }
+      }
+
       // Header Row
-      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4"];
+      const headers = ["Student ID", "First Name", "Last Name", "Q1", "Q2", "Q3", "Q4", "Average", "Remarks"];
       const headerRow = sheet.addRow(headers);
+      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
       headerRow.font = { bold: true };
-      
+
       // Style headers
       headerRow.eachCell((cell) => {
         cell.fill = {
@@ -283,9 +369,21 @@ const TeacherManageGradesPage = () => {
         };
       });
 
+      const parseGrade = (gradeString) => {
+        const num = parseFloat(gradeString);
+        if (isNaN(num)) {
+          return 'N/A'; // If parsing results in NaN, return 'N/A'
+        } else {
+          return parseFloat(num.toFixed(2)); // Otherwise, round to 2 decimal places and return as a number
+        }
+      };
+
       // Populate with student data and grades
-      selectedSection.students.forEach((student) => {
+      const sortedStudents = sortStudents(selectedSection.students);
+      sortedStudents.forEach((student) => {
         const studentGrades = classGrades[student._id] || {};
+        const { average, remarks } = calculateAverage(student._id);
+        
         const row = sheet.addRow([
           student._id,
           student.firstName,
@@ -294,8 +392,29 @@ const TeacherManageGradesPage = () => {
           studentGrades.Q2 || "-",
           studentGrades.Q3 || "-",
           studentGrades.Q4 || "-",
+          parseGrade(average),
+          remarks
         ]);
         
+        row.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Style the average cell based on value
+        if (average !== "-" && !isNaN(parseFloat(average))) {
+          const averageCell = row.getCell(8); // Column H - Average
+          averageCell.font = {
+            color: { argb: parseFloat(average) >= 85 ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
+        
+        // Style the remarks cell
+        if (remarks) {
+          const remarksCell = row.getCell(9); // Column I - Remarks
+          remarksCell.font = {
+            bold: true,
+            color: { argb: remarks === "Pass" ? '00008000' : 'FFFF0000' } // Green for pass, red for fail
+          };
+        }
+
         // Add light border to each cell
         row.eachCell((cell) => {
           cell.border = {
@@ -319,6 +438,11 @@ const TeacherManageGradesPage = () => {
         column.width = maxLength + 2;
       });
 
+      const generatedRow = sheet.addRow([`Generated on: ${new Date().toLocaleDateString()}`]);
+      generatedRow.eachCell((cell) => {
+        cell.font = { italic: true };
+      });
+
       // Generate and save the file
       const buffer = await workbook.xlsx.writeBuffer();
       const fileName = `Current_Grades_${selectedClass.subjectName}_Grade${selectedClass.gradeLevel}_${selectedSection.name}.xlsx`;
@@ -330,7 +454,7 @@ const TeacherManageGradesPage = () => {
       toast.error("Failed to download grades.");
     }
   };
-  
+
   /**
    * Upload and Process Filled Excel File
    */
@@ -365,7 +489,7 @@ const TeacherManageGradesPage = () => {
         // Process student grades
         for (let i = 2; i < rows.length; i++) {
           const row = rows[i];
-          if (!row) continue;
+          if (!row) continue
 
           const studentId = row[1];
           const grades = {
@@ -377,8 +501,8 @@ const TeacherManageGradesPage = () => {
 
           // Validate grades (must be numbers between 0-100 or "-")
           for (const quarter in grades) {
-            if (grades[quarter] !== "-" && (isNaN(grades[quarter]) || grades[quarter] < 0 || grades[quarter] > 100)) {
-              toast.error(`Invalid grade for Student ID ${studentId} in ${quarter}. Must be between 0-100.`);
+            if (grades[quarter] !== "-" && (isNaN(grades[quarter]) || grades[quarter] < 75 || grades[quarter] > 100)) {
+              toast.error(`Invalid grade for Student ID ${studentId} in ${quarter}. Must be between 75-100.`);
               return;
             }
           }
@@ -395,9 +519,10 @@ const TeacherManageGradesPage = () => {
         } catch (error) {
           toast.error("Failed to save all grades.");
           console.log("Error saving grades:", error);
+        } finally {
+          event.target.value = "";
+
         }
-        
-        toast.success("Grades successfully uploaded.");
       };
 
       reader.readAsArrayBuffer(file);
@@ -406,7 +531,7 @@ const TeacherManageGradesPage = () => {
       toast.error("Failed to upload grades. Ensure the file format is correct.");
     }
   };
-  
+
   // If loading, show loader
   if (isGettingSchoolYears || isLoading) {
     return (
@@ -441,7 +566,7 @@ const TeacherManageGradesPage = () => {
           <>
             <div className="bg-white p-6 rounded-lg shadow mt-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <Dropdown
+                <Dropdown
                   label="Class"
                   options={assignedClasses.map(
                     (c) => `${c.subjectName} - Grade ${c.gradeLevel}`
@@ -465,25 +590,25 @@ const TeacherManageGradesPage = () => {
                 {selectedClass && (
                   <>
                     <Dropdown
-                        label="Sections"
-                        options={selectedClass.sections.map((s) => `${s.gradeLevel}-${s.name}`)}
-                        selected={selectedSection ? `${selectedSection.gradeLevel}-${selectedSection.name}` : ""}
-                        setSelected={(formattedName) => {
-                          const [gradeLevel, sectionName] = formattedName.split("-");
+                      label="Sections"
+                      options={selectedClass.sections.map((s) => `${s.gradeLevel}-${s.name}`)}
+                      selected={selectedSection ? `${selectedSection.gradeLevel}-${selectedSection.name}` : ""}
+                      setSelected={(formattedName) => {
+                        const [gradeLevel, sectionName] = formattedName.split("-");
 
-                          // Find the section object that matches both gradeLevel and name
-                          const newSelectedSection = selectedClass.sections.find(
-                            (s) => s.gradeLevel == gradeLevel && s.name === sectionName
-                          );
+                        // Find the section object that matches both gradeLevel and name
+                        const newSelectedSection = selectedClass.sections.find(
+                          (s) => s.gradeLevel == gradeLevel && s.name === sectionName
+                        );
 
-                          // If newSelectedSection is found, set it as the selected section
-                          if (newSelectedSection) {
-                            setSelectedSection(newSelectedSection);
-                          } else {
-                            console.error("Section not found:", formattedName);
-                          }
-                        }}
-                      />
+                        // If newSelectedSection is found, set it as the selected section
+                        if (newSelectedSection) {
+                          setSelectedSection(newSelectedSection);
+                        } else {
+                          console.error("Section not found:", formattedName);
+                        }
+                      }}
+                    />
 
                     <Dropdown
                       label="Quarter"
@@ -509,15 +634,23 @@ const TeacherManageGradesPage = () => {
               <div className="bg-white p-6 rounded-lg shadow mt-5">
                 <h3 className="text-xl font-semibold mb-4">Grades Management</h3>
                 <div className="flex justify-start gap-4 mb-4">
-                  <button
-                    onClick={handleDownloadTemplate}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 flex items-center gap-1"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download Template
-                  </button>
+                  {selectedSchoolYear == currentSchoolYearState ? (
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 flex items-center gap-1"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Template
+                    </button>
+                  ) : (
+                    <div className="bg-gray-100 border border-gray-300 text-gray-600 px-4 py-2 rounded flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      You can only edit classes for the current school year
+                    </div>
+                  )}
+
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -529,6 +662,8 @@ const TeacherManageGradesPage = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q2</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q3</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Q4</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Average</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
                           </>
                         ) : (
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -538,7 +673,7 @@ const TeacherManageGradesPage = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedStudents.map((student) => (
+                      {paginatedStudents.map((student) => (
                         <tr key={student._id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {student.firstName} {student.lastName}
@@ -562,6 +697,16 @@ const TeacherManageGradesPage = () => {
                                   )}
                                 </td>
                               ))}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${parseFloat(calculateAverage(student._id).average) >= 85 ? "text-green-600" : "text-red-600"}`}>
+                                  {calculateAverage(student._id).average}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`${calculateAverage(student._id).remarks === "Pass" ? "text-green-600 font-medium" : calculateAverage(student._id).remarks === "Failed" ? "text-red-600 font-medium" : ""}`}>
+                                  {calculateAverage(student._id).remarks}
+                                </span>
+                              </td>
                             </>
                           ) : (
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -594,46 +739,50 @@ const TeacherManageGradesPage = () => {
                   isShowingAll={isShowingAll}
                   setIsShowingAll={setIsShowingAll}
                 />
-                <div className="flex justify-start mt-4 gap-4">
-                  <button
-                    onClick={handleEditMode}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    {editMode ? "Cancel Edit" : "Edit Grades"}
-                  </button>
-                  
-                  {/* Upload Grades Button */}
-                  <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    Upload Grades
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      className="hidden"
-                      onChange={handleUploadGrades}
-                    />
-                  </label>
-                  
-                  {/* Download Current Grades Button */}
-                  <button
-                    onClick={handleDownloadGrades}
-                    className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex items-center gap-1"
-                  >
-                    <FileDown className="w-4 h-4" />
-                    Download Current Grades
-                  </button>
+                  <div className="flex justify-start mt-4 gap-4">
+                    {selectedSchoolYear == currentSchoolYearState && (
+                      <>
+                        <button
+                          onClick={handleEditMode}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          {editMode ? "Cancel Edit" : "Edit Grades"}
+                        </button>
 
-                  {editMode && isSaveAllEnabled && (
+                        {/* Upload Grades Button */}
+                        <label className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-4 h-4" />
+                          Upload Grades
+                          <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                            onChange={handleUploadGrades}
+                          />
+                        </label>
+
+                        {editMode && isSaveAllEnabled && (
+                          <button
+                            onClick={handleSaveAllGrades}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                          >
+                            <Save className="w-4 h-4" />
+                            Save Changes
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Download Current Grades Button */}
                     <button
-                      onClick={handleSaveAllGrades}
-                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-1"
+                      onClick={handleDownloadGrades}
+                      className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex items-center gap-1"
                     >
-                      <Save className="w-4 h-4" />
-                      Save Changes
+                      <FileDown className="w-4 h-4" />
+                      Download Current Grades
                     </button>
-                  )}
-                </div>
+                  </div>
               </div>
             ) : (
               <div className="text-center text-gray-500 mt-6">No sections found for the selected class.</div>

@@ -3,20 +3,34 @@ import User from '../models/user.model.js';
 import Student from '../models/student.model.js';
 import Teacher from '../models/teacher.model.js';
 import Admin from '../models/admin.model.js';
-import {generateToken}  from '../config/utils.js';
-import {cloudinary} from '../config/cloudinary.js';
+import { generateToken } from '../config/utils.js';
+import { cloudinary } from '../config/cloudinary.js';
 
+// In auth-controller.js, modify the signup function:
 const signup = async (req, res) => {
-    const {first_name, last_name, email, password, role, gradeLevel} = req.body;
-    try{
-        const existingUser = await User
-            .findOne({email})
-            .exec();
-        if(existingUser){
-            return res.status(400).json({message: "User already exists"});
+    try {
+        // Destructure only the expected fields and validate types
+        const { first_name, last_name, email, password, role, gradeLevel } = req.body;
+
+        // Validate required fields are strings
+        if (typeof first_name !== 'string' ||
+            typeof last_name !== 'string' ||
+            typeof email !== 'string' ||
+            typeof password !== 'string' ||
+            typeof role !== 'string') {
+            return res.status(400).json({ message: "Invalid input format" });
         }
-        if(password.length < 6){
-            return res.status(400).json({message: "Password should be at least 6 characters"});
+
+
+        // Validate role is one of the expected values
+        const allowedRoles = ['Student', 'Teacher', 'Admin'];
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({ message: "Invalid role" });
+        }
+
+        const existingUser = await User.findOne({ email }).exec();
+        if (existingUser) {
+            return res.status(400).json({ message: "User already exists" });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -26,7 +40,7 @@ const signup = async (req, res) => {
             Teacher,
             Admin
         };
-        
+
         let user = new roleModels[role]({
             firstName: first_name,
             lastName: last_name,
@@ -35,69 +49,81 @@ const signup = async (req, res) => {
             role
         });
 
-        if(gradeLevel){
+        if (gradeLevel && typeof gradeLevel === 'string') {
             user.gradeLevel = parseInt(gradeLevel.split(" ")[1]);
         }
 
-        if(user){
+        if (user) {
             generateToken(user._id, res);
             await user.save();
-            return res.status(201).json({message: "User created successfully"});
-        }else{
-            return res.status(400).json({message: "Invalid user data"});
+            return res.status(201).json({ message: "User created successfully" });
+        } else {
+            return res.status(400).json({ message: "Invalid user data" });
         }
 
-    }catch(error){
+    } catch (error) {
         console.log("Error in signup: ", error);
-        return res.status(500).json({message: "Something went wrong"});
+        return res.status(400).json({ message: "Invalid input data" });
     }
 }
 
+// In auth-controller.js, modify the login function:
 const login = async (req, res) => {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
 
     try {
-        const user = await User.findOne({email});
-        if(!user){
-            return res.status(40).json({message: "Invalid Credentials"});
+        // Validate inputs before proceeding
+        if (typeof email !== 'string' || typeof password !== 'string') {
+            return res.status(400).json({ message: "Email and password must be valid strings" });
         }
-        
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "User with the provided email does not exist" });
+        }
+
         const isPasswordCorrect = user.password.startsWith('$2')
             ? await bcrypt.compare(password, user.password)
             : password === user.password;
 
-            if (!isPasswordCorrect) {
-            return res.status(400).json({ message: "Invalid credentials" });
-            }
+        if (!isPasswordCorrect) {
+            return res.status(401).json({ message: "Incorrect password" });
+        }
 
         generateToken(user._id, res);
-        return res.status(200).json({_id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role});
+        return res.status(200).json({ _id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role });
 
     } catch (error) {
-        return res.status(500).json({message: "Something went wrong"});
-
+        console.log("Error in login: ", error.message);
+        // Don't expose error details to client
+        return res.status(400).json({ message: "Invalid Credentials" });
     }
-}       
+}
 
 const logout = (req, res) => {
-   try{
+    try {
         res.cookie("jwt", "", {
             maxAge: 0,
         });
-        return res.status(200).json({message: "User logged out successfully"})
+        return res.status(200).json({ message: "User logged out successfully" })
 
-   }catch(error){
-        return res.status(500).json({message: "Something went wrong"});
-   }
+    } catch (error) {
+        return res.status(500).json({ message: "Something went wrong" });
+    }
 }
 
 const updateProfile = async (req, res) => {
-   
     try {
-        const contact_number = req.body.contact_number;
-        const address = req.body.address;
-        const profilePic = req.body.selectedImage;
-        const didChangeImage = req.body.didChangeImage;
+        // Extract and validate the expected fields
+        const { contact_number, address, selectedImage, didChangeImage } = req.body;
+
+        // Type validation
+        if ((contact_number !== undefined && typeof contact_number !== 'string') ||
+            (address !== undefined && typeof address !== 'string') ||
+            (didChangeImage !== undefined && typeof didChangeImage !== 'boolean')) {
+            return res.status(400).json({ message: "Invalid input format" });
+        }
+
         const userId = req.user._id;
 
         // Fetch current user data
@@ -109,17 +135,18 @@ const updateProfile = async (req, res) => {
         let updateData = {}; // Object to store only changed fields
 
         // Check if profile picture needs to be updated
-        if (didChangeImage) {
-
-            const uploadResponse = await cloudinary.uploader.upload(profilePic);
+        if (didChangeImage && selectedImage) {
+            // Validate image data format if needed
+            const uploadResponse = await cloudinary.uploader.upload(selectedImage);
             updateData.profilePic = uploadResponse.secure_url;
         }
 
         // Check if contact number or address has changed before updating
-        if (contact_number !== currentUser.contactNumber) {
+        if (contact_number !== undefined && contact_number !== currentUser.contactNumber) {
             updateData.contactNumber = contact_number;
         }
-        if (address !== currentUser.address) {
+
+        if (address !== undefined && address !== currentUser.address) {
             updateData.address = address;
         }
 
@@ -138,16 +165,16 @@ const updateProfile = async (req, res) => {
 
     } catch (error) {
         console.log("Error in updateProfile: ", error.message);
-        return res.status(500).json({ message: "Something went wrong" });
+        return res.status(400).json({ message: "Invalid input data" });
     }
 };
 
 const checkAuth = (req, res) => {
-    try{
+    try {
         return res.status(200).json(req.user);
-    }catch(error){
+    } catch (error) {
         console.log("Error in checkAuth: ", error.message);
-        return res.status(500).json({message: "Something went wrong"});
+        return res.status(500).json({ message: "Something went wrong" });
     }
 }
 

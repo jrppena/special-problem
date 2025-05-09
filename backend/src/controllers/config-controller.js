@@ -1,9 +1,8 @@
 import Config from "../models/config.model.js";
 import Class from "../models/class.model.js";
-import Section from "../models/section.model.js";
 import Student from "../models/student.model.js";
 import Grade from "../models/grade.model.js";
-
+import Section from "../models/section.model.js";
 
 const getAllSchoolYears = async (req, res) => {
     try {
@@ -42,14 +41,16 @@ const getCurrentSchoolYear = async (req, res) => {
 }
 
 const updateCurrentSchoolYear = async (req, res) => {
-  if (req.user.role !== "Admin") {
-    return res.status(403).json({ message: "Unauthorized" });
-  }
-
   try {
     // Get the current school year
-    const currentSchoolYear = req.body.currentSchoolYear || "2023-2024"; // Fallback value
+    const config = await Config.findOne().select("currentSchoolYear");
+
+    if (!config || !config.currentSchoolYear) {
+      return res.json({ message: "No current school year found" });
+    }
     
+    const currentSchoolYear = config.currentSchoolYear;
+
     // Extract the years from the current school year
     const [startYear, endYear] = currentSchoolYear.split('-').map(Number);
     
@@ -57,6 +58,42 @@ const updateCurrentSchoolYear = async (req, res) => {
     const newStartYear = startYear + 1;
     const newEndYear = endYear + 1;
     const newSchoolYear = `${newStartYear}-${newEndYear}`;
+    
+    // Check if all sections have students
+    const sections = await Section.find({ schoolYear: currentSchoolYear });
+    
+    for (const section of sections) {
+      if (section.students.length === 0) {
+        return res.json({ message: "Some sections still do not have students yet, it is not possible to update the school year" });
+      }
+    }
+
+    // NEW CODE: Check for students not enrolled in any section for the current school year
+    // Collect all student IDs already assigned to sections
+    let enrolledStudentIds = [];
+    sections.forEach((section) => {
+      enrolledStudentIds = enrolledStudentIds.concat(section.students);
+    });
+
+    // Find students who are not enrolled in any section for the current school year
+    const unenrolledStudents = await Student.find({
+      _id: { $nin: enrolledStudentIds },
+      academicStatus: { $ne: "Completed" }
+    }).select('_id firstName lastName gradeLevel');
+
+    // If there are unenrolled students, return with error message
+    if (unenrolledStudents.length > 0) {
+      return res.status(200).json({
+        success: false,
+        message: "Cannot update school year because some students are not enrolled in any section",
+        unenrolledStudents: unenrolledStudents.map(student => ({
+          id: student._id,
+          name: `${student.firstName} ${student.lastName}`,
+          gradeLevel: student.gradeLevel
+        })),
+        currentSchoolYear: currentSchoolYear
+      });
+    }
     
     // Fetch all classes with their sections in a single query
     const allClasses = await Class.find({ schoolYear: currentSchoolYear })
@@ -67,7 +104,8 @@ const updateCurrentSchoolYear = async (req, res) => {
           select: '_id'
         }
       });
-    if(!allClasses || allClasses.length === 0) {
+      
+    if (!allClasses || allClasses.length === 0) {
       return res.json({ message: "No classes found for the current school year. It's not possible to update school year when there are yet no classes" });
     }
 
@@ -81,7 +119,6 @@ const updateCurrentSchoolYear = async (req, res) => {
     // Process sections and students once instead of multiple times
     allClasses.forEach(classObj => {
       const classStudents = [];
-
       
       classObj.sections.forEach(section => {
         if (section && section.students) {
@@ -93,12 +130,12 @@ const updateCurrentSchoolYear = async (req, res) => {
           // Store section info for later use
           sectionMap.set(section._id.toString(), {
             name: section.name || `Section ${section._id}`,
-            grade: section.grade
+            grade: section.gradeLevel
           });
           
           // Store the total student count for each section
           sectionStudentCountMap.set(section._id.toString(), studentIds.length);
-        }else if (section.students.length === 0) {
+        } else if (section.students && section.students.length === 0) {
           return res.json({ message: "Some classes still do not have students yet, it is not possible to update the school year when some classes don't have students yet" });
         }
       });
@@ -187,32 +224,111 @@ const updateCurrentSchoolYear = async (req, res) => {
       });
     }
     
-    // // If no missing grades, proceed with updating the school year and promoting students
+    // FIX: Calculate student grade averages using the gradeValue field instead of score
+    // Group grades by student to calculate their averages
+    const studentGrades = new Map();
     
-    // // 1. Promote all students except grade 12
-    const studentsToUpdate = await Student.find({ gradeLevel: { $lt: 12 }});
-
+    // Process all grades to compute averages per student
+    allGrades.forEach(grade => {
+      const studentId = grade.student.toString();
+      
+      if (!studentGrades.has(studentId)) {
+        studentGrades.set(studentId, {
+          totalScore: 0,
+          gradeCount: 0
+        });
+      }
+      
+      const studentData = studentGrades.get(studentId);
+      // FIX: Use gradeValue field instead of score
+      studentData.totalScore += grade.gradeValue || 0;
+      studentData.gradeCount += 1;
+    });
     
-    // Use bulkWrite for more efficient database operations
-    const bulkOps = studentsToUpdate.map(student => ({
+    // Calculate averages
+    const studentAverages = new Map();
+    studentGrades.forEach((data, studentId) => {
+      const average = data.gradeCount > 0 ? data.totalScore / data.gradeCount : 0;
+      studentAverages.set(studentId, average);
+    });
+    
+    // Get all students below grade 10 for potential promotion - include name fields
+    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 10 }})
+      .select('_id firstName lastName gradeLevel');
+    
+    // Filter students based on their grade average
+    const promotedStudents = [];
+    const failedStudents = [];
+    const failedStudentIds = [];
+    
+    studentsToEvaluate.forEach(student => {
+      const studentId = student._id.toString();
+      const average = studentAverages.get(studentId) || 0;
+      
+      if (average > 85) {
+        promotedStudents.push(student._id);
+      } else {
+        failedStudentIds.push(student._id);
+        failedStudents.push({
+          studentId: student._id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          average: average,
+          currentGrade: student.gradeLevel,
+          status: "Retained"
+        });
+      }
+    });
+    
+    // Update academic status to "Retained" for all students who failed
+    if (failedStudentIds.length > 0) {
+      await Student.updateMany(
+        { _id: { $in: failedStudentIds } },
+        { $set: { academicStatus: "Retained" } }
+      );
+    }
+    
+    // Use bulkWrite for more efficient database operations - only promote students with avg > 85
+    const bulkOps = promotedStudents.map(studentId => ({
       updateOne: {
-        filter: { _id: student._id },
+        filter: { _id: studentId },
         update: { $inc: { gradeLevel: 1 } }
       }
     }));
     
     const bulkResult = await Student.bulkWrite(bulkOps);
     
-
-    const graduatedStudents = await Student.find({ gradeLevel: 12 });
+    // Handle completion for 10th grade students - only graduate those with avg > 85
+    const grade10Students = await Student.find({ gradeLevel: 10 })
+      .select('_id firstName lastName gradeLevel');
     
-    await Promise.all(graduatedStudents.map(async (student) => {
-      student.academicStatus = "Graduated";
-      await student.save();
+    // Process each grade 10 student
+    const completedCount = await Promise.all(grade10Students.map(async (student) => {
+      const studentId = student._id.toString();
+      const average = studentAverages.get(studentId) || 0;
+      
+      if (average > 85) {
+        // Student meets completion requirements
+        student.academicStatus = "Completed";
+        await student.save();
+        return true;
+      } else {
+        // Student doesn't meet grade requirements for completion
+        student.academicStatus = "Retained";
+        await student.save();
+        
+        // Add to failed students list for reporting
+        failedStudents.push({
+          studentId: student._id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          average: average,
+          currentGrade: student.gradeLevel,
+          status: "Grade 10 Not Completed"
+        });
+        return false;
       }
-    ));
+    })).then(results => results.filter(Boolean).length);
 
-    // 2. Update application config with new school year
+    // Update application config with new school year
     const configUpdate = await Config.findOneAndUpdate(
       {}, 
       {
@@ -222,17 +338,20 @@ const updateCurrentSchoolYear = async (req, res) => {
       { upsert: true, new: true }
     );
     
+    console.log("Updated config:", configUpdate);
     
-    // 3. Calculate statistics for the response
+    // Calculate statistics for the response
     return res.status(200).json({
       success: true,
-      message: "School year updated successfully and eligible students promoted",
+      message: "School year updated successfully and eligible students promoted/graduated",
       previousSchoolYear: currentSchoolYear,
       currentSchoolYear: newSchoolYear,
       promotionSummary: {
-        totalStudents: studentsToUpdate.length,
+        totalStudents: studentsToEvaluate.length + grade10Students.length,
         promotedStudents: bulkResult.modifiedCount,
-        failedPromotions: studentsToUpdate.length - bulkResult.modifiedCount
+        completedStudents: completedCount,
+        failedPromotions: failedStudents.length,
+        studentsRetained: failedStudents
       }
     });
     

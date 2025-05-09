@@ -1,9 +1,6 @@
 import {create} from 'zustand';
 import {axiosInstance} from '../lib/axios';
 import toast from 'react-hot-toast';
-import {useSectionStore} from './useSectionStore';
-import { schoolYears } from '../constants';
-
 
 export const useTeacherStore = create((set) => ({
     teachers: [],
@@ -26,16 +23,6 @@ export const useTeacherStore = create((set) => ({
             toast.error('Failed to fetch teachers');
         }finally{
             set({isFetchingTeachers: false});
-        }
-    },
-
-    checkIfAdviser: async (userId) => {
-        try{
-            const response = await axiosInstance.get(`/teacher/check/if-adviser/${userId}`);
-            set({isAdviser: true});
-        }catch(error){
-            console.log('Error in isAdviser: ', error);
-            toast.error('Failed to check if user is an adviser');
         }
     },
     
@@ -115,7 +102,12 @@ export const useTeacherStore = create((set) => ({
      
         try {
             const response = await axiosInstance.post('/teacher/update/student-grades', {selectedClass,editedGrades,section });
-            toast.success('Student grades updated');
+            if(response.data.success === false){
+                toast.error(response.data.message);
+                return;
+            }else if(response.data.success === true){
+                toast.success('Successfully updated student grades');
+            }
             set({classGrades: response.data.updatedClassGrades});
         } catch (error) {
             console.error('Error in updateStudentGrades: ', error);
@@ -123,10 +115,10 @@ export const useTeacherStore = create((set) => ({
         }
     },
 
-    getChartData: async (classId, gradingPeriod, section, dataType, selectedStudents = []) => {
+    getChartData: async (classId, schoolYear, gradingPeriod, section, dataType, selectedStudents = []) => {
         try {
           // Build the base query params
-          const params = { classId, gradingPeriod, dataType };
+          const params = { classId, schoolYear, gradingPeriod, dataType };
           
           // If single section, pass section._id
           if (dataType === "singleSectionPerformance" && section) {
@@ -167,7 +159,6 @@ export const useTeacherStore = create((set) => ({
             const response = await axiosInstance.get('teacher/get/section-grades',{
                 params:{sectionId, schoolYear}
             });
-            console.log(response.data);
             set({adviserSectionGrades: response.data});
         }catch(error){
             console.log('Error in getAdviserSectionGrades: ', error);
