@@ -255,7 +255,7 @@ const updateCurrentSchoolYear = async (req, res) => {
     });
     
     // Get all students below grade 10 for potential promotion - include name fields
-    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 10 }})
+    const studentsToEvaluate = await Student.find({ gradeLevel: { $lt: 10 },accountStatus: "Verified" })
       .select('_id firstName lastName gradeLevel');
     
     // Filter students based on their grade average
@@ -300,7 +300,7 @@ const updateCurrentSchoolYear = async (req, res) => {
     const bulkResult = await Student.bulkWrite(bulkOps);
     
     // Handle completion for 10th grade students - only graduate those with avg > 85
-    const grade10Students = await Student.find({ gradeLevel: 10 })
+    const grade10Students = await Student.find({ gradeLevel: 10 ,accountStatus: "Verified" })
       .select('_id firstName lastName gradeLevel');
     
     // Process each grade 10 student
