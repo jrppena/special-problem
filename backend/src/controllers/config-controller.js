@@ -78,6 +78,8 @@ const updateCurrentSchoolYear = async (req, res) => {
     // Find students who are not enrolled in any section for the current school year
     const unenrolledStudents = await Student.find({
       _id: { $nin: enrolledStudentIds },
+      accountStatus: "Verified",
+      schoolYear: currentSchoolYear,
       academicStatus: { $ne: "Completed" }
     }).select('_id firstName lastName gradeLevel');
 

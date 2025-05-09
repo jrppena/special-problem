@@ -40,6 +40,7 @@ const getAvailableStudents = async (req, res) => {
         // Find students of the given grade level that are not in any section for that school year
         const availableStudents = await Student.find({
             gradeLevel,
+            accountStatus: "Verified",
             _id: { $nin: usedStudentIds },
             academicStatus: { $ne: "Completed" }
         });
